@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axis — Adoption Requirements</title>
+  <meta name="description" content="Complete prerequisites and middleware contract for adopting the Axis semantic analytics library.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary:   #000000;
+      --bg-secondary: #0a0a0a;
+      --bg-tertiary:  #161616;
+      --text-primary:   #f5f7fa;
+      --text-secondary: #cbd5e1;
+      --accent-pink:       #ec4899;
+      --accent-pink-light: #f472b6;
+      --border-color: #262626;
+      --code-bg:     #0a0a0a;
+      --code-border: #262626;
+    }
+
+    body {
+      font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    header h1 {
+      font-size: 52px; font-weight: 700; margin-bottom: 12px;
+      background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-pink-light) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    header p { font-size: 18px; color: var(--text-secondary); font-weight: 300; max-width: 580px; margin: 0 auto; line-height: 1.7; }
+    header .version-badge {
+      display: inline-block; margin-top: 16px;
+      background: rgba(236,72,153,0.10); border: 1px solid rgba(236,72,153,0.25);
+      border-radius: 20px; padding: 4px 14px; font-size: 13px;
+      color: var(--accent-pink-light); font-family: "JetBrains Mono", monospace;
+    }
+
+    /* ── TOC ── */
+    .toc {
+      background: var(--bg-secondary); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 32px; margin-bottom: 60px;
+    }
+    .toc h2 { color: var(--accent-pink); margin-bottom: 20px; font-size: 20px; }
+    .toc ol { list-style: none; counter-reset: item; column-count: 2; column-gap: 32px; }
+    .toc li { counter-increment: item; margin-bottom: 12px; padding-left: 8px; }
+    .toc li::before { content: counter(item) ". "; color: var(--accent-pink); font-weight: 600; }
+    .toc a { color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+    .toc a:hover { color: var(--accent-pink); }
+
+    /* ── Headings ── */
+    h1 { font-size: 42px; font-weight: 700; margin: 60px 0 24px; color: var(--accent-pink); scroll-margin-top: 80px; }
+    h2 { font-size: 30px; font-weight: 700; margin: 52px 0 20px; color: var(--accent-pink); scroll-margin-top: 80px; }
+    h3 { font-size: 22px; font-weight: 600; margin: 36px 0 16px; color: var(--text-primary); }
+    h4 { font-size: 17px; font-weight: 600; margin: 24px 0 12px; color: var(--text-secondary); }
+
+    p { margin-bottom: 16px; color: var(--text-secondary); line-height: 1.8; }
+    p + p { margin-top: 16px; }
+
+    a { color: var(--accent-pink); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--accent-pink-light); text-decoration: underline; }
+
+    /* ── Code ── */
+    pre {
+      background: var(--code-bg); border: 1px solid var(--code-border);
+      border-radius: 8px; padding: 20px; overflow-x: auto;
+      margin: 24px 0; font-size: 14px; line-height: 1.6;
+    }
+    code { font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; color: #d4d4d4; }
+    pre code { color: #d4d4d4; }
+    pre code .tok-k { color: #c586c0; }
+    pre code .tok-s { color: #ce9178; }
+    pre code .tok-n { color: #b5cea8; }
+    pre code .tok-c { color: #6a9955; font-style: italic; }
+    pre code .tok-f { color: #dcdcaa; }
+    pre code .tok-p { color: #9cdcfe; }
+    pre code .tok-b { color: #569cd6; }
+    pre code .tok-t { color: #4ec9b0; }
+    p code, li code, td code, h3 code, h4 code {
+      font-family: "JetBrains Mono", monospace;
+      background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 14px;
+    }
+
+    /* ── Lists ── */
+    ul, ol { margin-left: 24px; margin-bottom: 16px; }
+    li { margin-bottom: 12px; color: var(--text-secondary); line-height: 1.8; }
+    li strong { color: var(--text-primary); }
+
+    /* ── Tables ── */
+    table {
+      width: 100%; border-collapse: collapse; margin: 32px 0;
+      background: var(--bg-secondary); border: 1px solid var(--border-color);
+      border-radius: 8px; overflow: hidden;
+    }
+    table th {
+      background: var(--bg-tertiary); padding: 16px; text-align: left;
+      font-weight: 600; color: var(--accent-pink); border-bottom: 2px solid var(--border-color);
+    }
+    table td { padding: 16px; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); vertical-align: top; }
+    table tr:last-child td { border-bottom: none; }
+    table tr:hover { background: var(--bg-tertiary); }
+
+    /* ── Blockquote ── */
+    blockquote {
+      border-left: 4px solid var(--accent-pink);
+      background: rgba(236,72,153,0.05);
+      padding: 16px 20px; margin: 24px 0; border-radius: 4px; color: var(--text-secondary);
+    }
+    blockquote strong { color: var(--text-primary); }
+
+    /* ── Callout boxes ── */
+    .callout {
+      border-radius: 8px; padding: 16px 20px; margin: 24px 0;
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .callout-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+    .callout-content { flex: 1; }
+    .callout-content p { margin: 0; }
+    .callout-warning { background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.25); }
+    .callout-info    { background: rgba(96,165,250,0.07);  border: 1px solid rgba(96,165,250,0.25); }
+    .callout-danger  { background: rgba(236,72,153,0.07);  border: 1px solid rgba(236,72,153,0.25); }
+
+    /* ── Status rows (deployment state section) ── */
+    .status-table td:first-child { color: var(--text-primary); font-weight: 500; white-space: nowrap; }
+    .status-active   { color: #4ade80 !important; font-weight: 600; }
+    .status-inactive { color: #64748b !important; }
+    .status-note     { color: var(--text-secondary); font-size: 13px; }
+
+    /* ── Badge pills ── */
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 600;
+      font-family: "JetBrains Mono", monospace; white-space: nowrap;
+    }
+    .badge-required { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3); color: #4ade80; }
+    .badge-optional { background: rgba(251,191,36,0.10); border: 1px solid rgba(251,191,36,0.25); color: #fbbf24; }
+    .badge-active   { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3); color: #4ade80; }
+    .badge-inactive { background: rgba(100,116,139,0.12); border: 1px solid rgba(100,116,139,0.3); color: #64748b; }
+
+    /* ── Step list ── */
+    .steps { counter-reset: step; list-style: none; margin: 0; padding: 0; }
+    .steps li { counter-increment: step; padding-left: 48px; position: relative; margin-bottom: 28px; }
+    .steps li::before {
+      content: counter(step);
+      position: absolute; left: 0; top: 0;
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--accent-pink), var(--accent-pink-light));
+      border-radius: 50%; font-size: 13px; font-weight: 700; color: #fff;
+      text-align: center; line-height: 30px;
+    }
+    .steps li strong { display: block; font-size: 16px; color: var(--text-primary); margin-bottom: 6px; }
+
+    section { margin-bottom: 48px; }
+    hr { border: none; height: 1px; background: var(--border-color); margin: 48px 0; }
+    .section-divider { border-top: 1px solid var(--border-color); margin: 60px 0 0; padding-top: 40px; }
+    .highlight { color: var(--accent-pink); font-weight: 600; }
+
+    @media (max-width: 768px) {
+      .container { padding: 24px 16px; }
+      header h1 { font-size: 36px; }
+      h2 { font-size: 24px; }
+      h3 { font-size: 18px; }
+      table { font-size: 14px; }
+      table th, table td { padding: 12px; }
+      pre { font-size: 12px; padding: 16px; }
+      .toc ol { column-count: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <h1>Axis</h1>
+      <p>Complete adoption requirements — prerequisites, middleware contracts, and current deployment status for the Axis semantic analytics library.</p>
+      <span class="version-badge">v1.0.0</span>
+    </header>
+
+    <!-- Intro -->
+    <section>
+      <p>
+        <strong>Axis</strong> is a semantic analytics layer that sits between an Express HTTP server and a PostgreSQL database. You define <strong>Models</strong> (named axes + metrics), accept a JSON query DSL, and Axis compiles that into parameterized SQL — and optionally routes it to OpenSearch for full-text or semantic search.
+      </p>
+      <p>This document answers two questions:</p>
+      <ul>
+        <li><strong>What must exist before you can run Axis?</strong> (Prerequisites)</li>
+        <li><strong>What must your middleware implement?</strong> (Middleware Contract)</li>
+      </ul>
+    </section>
+
+    <!-- TOC -->
+    <div class="toc">
+      <h2>Table of Contents</h2>
+      <ol>
+        <li><a href="#current-status">Current Deployment Status</a></li>
+        <li><a href="#infrastructure">Infrastructure Prerequisites</a></li>
+        <li><a href="#runtime">Runtime &amp; Toolchain</a></li>
+        <li><a href="#project-config">Project Configuration</a></li>
+        <li><a href="#env-vars">Environment Variables</a></li>
+        <li><a href="#install-import">Install &amp; Import Axis</a></li>
+        <li><a href="#define-models">Define &amp; Register Models</a></li>
+        <li><a href="#instantiate">Instantiate Axis</a></li>
+        <li><a href="#opensearch">Wire OpenSearch Adapter</a></li>
+        <li><a href="#embeddings">Wire Embedding Provider</a></li>
+        <li><a href="#security">Wire Security &amp; JWT Auth</a></li>
+        <li><a href="#routes">Expose HTTP Routes</a></li>
+        <li><a href="#errors">Handle Errors Correctly</a></li>
+        <li><a href="#shutdown">Graceful Shutdown</a></li>
+        <li><a href="#model-contract">Model Definition Contract</a></li>
+        <li><a href="#query-dsl">Query DSL Contract</a></li>
+        <li><a href="#security-contract">Security Context Contract</a></li>
+        <li><a href="#feature-matrix">Feature Matrix</a></li>
+        <li><a href="#pitfalls">Common Pitfalls</a></li>
+      </ol>
+    </div>
+
+    <hr>
+
+    <!-- ═══════════════════════ PART 1: PREREQUISITES ═══════════════════════ -->
+    <h1>Part 1 — Pre-requisites</h1>
+    <p>Everything that must exist or be provisioned <em>before</em> the Axis library can run.</p>
+
+    <!-- Section 0: Current Status -->
+    <section id="current-status" class="section-divider">
+      <h2>0. Current Deployment Status</h2>
+      <p>What is <strong>actually active</strong> in this deployment right now, based on <code>.env</code> and the current source code. Use this as a quick reference before reading the full sections below.</p>
+
+      <table class="status-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Status</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>PostgreSQL</td>
+            <td><span class="badge badge-active">✓ Active</span></td>
+            <td>Database <code>po</code> @ <code>localhost:5432</code>. Used internally (library-level). No HTTP <code>/query</code> route is exposed.</td>
+          </tr>
+          <tr>
+            <td>JWT Authentication</td>
+            <td><span class="badge badge-active">✓ Active</span></td>
+            <td><code>AXIS_JWT_SECRET</code> is set. Guards <code>/search</code> and <code>/os/*</code>. Every request must carry <code>Authorization: Bearer &lt;JWT&gt;</code>.</td>
+          </tr>
+          <tr>
+            <td>OpenSearch</td>
+            <td><span class="badge badge-active">✓ Active</span></td>
+            <td><code>http://10.0.2.147:9200</code> — open cluster, no credentials. Index: <code>purchase-requisitions</code> (knn enabled, dim 384).</td>
+          </tr>
+          <tr>
+            <td>Embedding Provider</td>
+            <td><span class="badge badge-active">✓ Active</span></td>
+            <td>Provider: <code>openai-compatible</code> &nbsp;·&nbsp; Model: <code>sentence-transformers/all-MiniLM-L6-v2</code> &nbsp;·&nbsp; Dims: <code>384</code> &nbsp;·&nbsp; URL: <code>http://10.0.2.147:8000</code>. Enables semantic &amp; hybrid search.</td>
+          </tr>
+          <tr>
+            <td>Cache</td>
+            <td><span class="badge badge-inactive">✗ Disabled</span></td>
+            <td>Explicitly set to <code>cache: { enabled: false }</code> in <code>app.ts</code>. Every request goes directly to OpenSearch — no result caching at any layer.</td>
+          </tr>
+          <tr>
+            <td>Valkey / Redis</td>
+            <td><span class="badge badge-inactive">✗ Not configured</span></td>
+            <td><code>VALKEY_URL</code> not set. Not needed — cache is disabled.</td>
+          </tr>
+          <tr>
+            <td>HTTP <code>/query</code> route</td>
+            <td><span class="badge badge-inactive">✗ Removed</span></td>
+            <td>Direct-SQL HTTP path disabled. <code>axis.query()</code> remains available at the library level for future cron jobs, but is not exposed over HTTP.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Section 1: Infrastructure -->
+    <section id="infrastructure" class="section-divider">
+      <h2>1. Infrastructure Prerequisites</h2>
+      <p>Only PostgreSQL is universally mandatory. OpenSearch and the embedding service are mandatory <em>for this deployment</em> because the middleware is OpenSearch-only.</p>
+
+      <table>
+        <thead>
+          <tr><th>Service</th><th>Required?</th><th>Purpose</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>PostgreSQL</strong> (≥ 12)</td>
+            <td><span class="badge badge-required">Required</span></td>
+            <td>SQL query target (library-level)</td>
+            <td><code>axis.query()</code> uses this internally. No HTTP route exposes it in this deployment.</td>
+          </tr>
+          <tr>
+            <td><strong>OpenSearch</strong> (≥ 2.x)</td>
+            <td><span class="badge badge-required">Required here</span></td>
+            <td>Full-text / semantic / hybrid search</td>
+            <td><code>/search</code> and <code>/os/*</code> routes require it. Without it, these routes return 503.</td>
+          </tr>
+          <tr>
+            <td><strong>Embedding Service</strong></td>
+            <td><span class="badge badge-required">Required here</span></td>
+            <td>Vector generation for semantic/hybrid search</td>
+            <td><code>search.type = "semantic"</code> or <code>"hybrid"</code> will fail without a running embedding endpoint.</td>
+          </tr>
+          <tr>
+            <td><strong>Valkey / Redis</strong></td>
+            <td><span class="badge badge-inactive">Not in use</span></td>
+            <td>Distributed cache</td>
+            <td>Cache is explicitly disabled — not needed at all.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Section 2: Runtime -->
+    <section id="runtime" class="section-divider">
+      <h2>2. Runtime &amp; Toolchain</h2>
+      <table>
+        <thead>
+          <tr><th>Requirement</th><th>Minimum Version</th><th>Reason</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Node.js</strong></td><td>≥ 18 LTS</td><td>Axis is ESM-only. Node 18+ handles native ESM and <code>pkg.exports</code>.</td></tr>
+          <tr><td><strong>npm</strong></td><td>≥ 9</td><td>Required for <code>file:</code> tarball installs (<code>axis-1.0.0.tgz</code>).</td></tr>
+          <tr><td><strong>TypeScript</strong></td><td>≥ 5.0</td><td>Axis types use modern TS features. Middleware uses TS 5.6.</td></tr>
+          <tr><td><strong>tsx</strong></td><td>≥ 4.19</td><td>Dev-mode runner (<code>npm run dev</code>). Not needed in production.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Section 3: Project Config -->
+    <section id="project-config" class="section-divider">
+      <h2>3. Project Configuration</h2>
+
+      <h3>3.1 ESM Mode — Non-Negotiable</h3>
+      <p>Axis is ESM-only. The consuming project <em>must</em> also run in ESM mode:</p>
+      <pre><code><span class="tok-c">// package.json</span>
+{ <span class="tok-s">"type"</span>: <span class="tok-s">"module"</span> }</code></pre>
+      <div class="callout callout-danger">
+        <span class="callout-icon">🚫</span>
+        <div class="callout-content">
+          <p>Importing Axis from a CJS project fails immediately with <code>ERR_REQUIRE_ESM</code>. There is no compatibility shim.</p>
+        </div>
+      </div>
+
+      <h3>3.2 TypeScript Compiler Options</h3>
+      <pre><code>{
+  <span class="tok-s">"compilerOptions"</span>: {
+    <span class="tok-s">"target"</span>: <span class="tok-s">"ES2022"</span>,
+    <span class="tok-s">"module"</span>: <span class="tok-s">"NodeNext"</span>,              <span class="tok-c">// MANDATORY</span>
+    <span class="tok-s">"moduleResolution"</span>: <span class="tok-s">"NodeNext"</span>,  <span class="tok-c">// MANDATORY — resolves package.json exports</span>
+    <span class="tok-s">"strict"</span>: <span class="tok-b">true</span>,
+    <span class="tok-s">"esModuleInterop"</span>: <span class="tok-b">true</span>,
+    <span class="tok-s">"skipLibCheck"</span>: <span class="tok-b">true</span>
+  }
+}</code></pre>
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div class="callout-content">
+          <p>With <code>NodeNext</code> resolution, all relative imports inside your source must use explicit <code>.js</code> extensions — e.g. <code>import { foo } from "./utils.js"</code>.</p>
+        </div>
+      </div>
+
+      <h3>3.3 Installing the Library</h3>
+      <pre><code><span class="tok-c"># From your middleware root</span>
+npm install --save <span class="tok-s">"file:../axis/axis-1.0.0.tgz"</span></code></pre>
+      <div class="callout callout-warning">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-content">
+          <p>After rebuilding Axis, re-run <code>npm pack</code> inside <code>axis/</code> and then <code>npm install</code> in the middleware. A stale <code>node_modules/axis</code> is the most common source of broken imports.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Env Vars -->
+    <section id="env-vars" class="section-divider">
+      <h2>4. Environment Variables</h2>
+      <p>The middleware reads env vars and passes parsed values to Axis. <strong>The library itself never reads <code>process.env</code>.</strong></p>
+
+      <table>
+        <thead>
+          <tr><th>Variable</th><th>Required?</th><th>Current Value</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>DATABASE_URL</code></td>
+            <td><span class="badge badge-required">Required</span></td>
+            <td>✅ Set</td>
+            <td>PostgreSQL connection string. Passed directly to <code>Axis({ database: { url } })</code>.</td>
+          </tr>
+          <tr>
+            <td><code>PORT</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td>3000 (default)</td>
+            <td>HTTP server listen port.</td>
+          </tr>
+          <tr>
+            <td><code>AXIS_JWT_SECRET</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td>✅ Set</td>
+            <td>When set, enables JWT auth on <code>/search</code> and <code>/os/*</code>. Without it those routes are open.</td>
+          </tr>
+          <tr>
+            <td><code>OPENSEARCH_URL</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td><code>http://10.0.2.147:9200</code></td>
+            <td>OpenSearch endpoint. When empty, search routes return 503.</td>
+          </tr>
+          <tr>
+            <td><code>OPENSEARCH_USERNAME</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td>Not set</td>
+            <td>Basic auth username. Not needed — open cluster.</td>
+          </tr>
+          <tr>
+            <td><code>OPENSEARCH_PASSWORD</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td>Not set</td>
+            <td>Basic auth password. Not needed — open cluster.</td>
+          </tr>
+          <tr>
+            <td><code>OPENSEARCH_INDEX_PREFIX</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td>Not set</td>
+            <td>Prefix prepended to all index names.</td>
+          </tr>
+          <tr>
+            <td><code>OPENSEARCH_SSL_REJECT_UNAUTHORIZED</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td><code>true</code> (default)</td>
+            <td>Set <code>"false"</code> for self-signed certs in dev.</td>
+          </tr>
+          <tr>
+            <td><code>EMBEDDING_URL</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td><code>http://10.0.2.147:8000</code></td>
+            <td>Embedding service base URL. Required for semantic/hybrid search.</td>
+          </tr>
+          <tr>
+            <td><code>EMBEDDING_PROVIDER</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td><code>openai-compatible</code></td>
+            <td><code>"ollama"</code> or <code>"openai-compatible"</code>.</td>
+          </tr>
+          <tr>
+            <td><code>EMBEDDING_MODEL</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td><code>sentence-transformers/all-MiniLM-L6-v2</code></td>
+            <td>Model name in the embedding container.</td>
+          </tr>
+          <tr>
+            <td><code>EMBEDDING_API_KEY</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td>Not set</td>
+            <td>API key for OpenAI-compatible endpoints.</td>
+          </tr>
+          <tr>
+            <td><code>EMBEDDING_DIMENSIONS</code></td>
+            <td><span class="badge badge-optional">Optional</span></td>
+            <td><code>384</code></td>
+            <td>Vector dimensionality. Must match the OpenSearch <code>knn_vector</code> mapping dimension.</td>
+          </tr>
+          <tr>
+            <td><code>CACHE_ENABLED</code></td>
+            <td><span class="badge badge-inactive">Ignored</span></td>
+            <td>Not set</td>
+            <td>Cache is disabled in code regardless of this variable.</td>
+          </tr>
+          <tr>
+            <td><code>VALKEY_URL</code></td>
+            <td><span class="badge badge-inactive">Not needed</span></td>
+            <td>Not set</td>
+            <td>Cache is disabled — Valkey is not needed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <hr>
+
+    <!-- ═══════════════════════ PART 2: MIDDLEWARE CONTRACT ═══════════════════════ -->
+    <h1>Part 2 — Middleware Contract</h1>
+    <p>Everything the consuming middleware application <em>must</em> implement to correctly use Axis.</p>
+
+    <!-- Section 5: Install & Import -->
+    <section id="install-import" class="section-divider">
+      <h2>5. Install &amp; Import Axis</h2>
+      <p>All public exports come from a single <code>"axis"</code> entry point. No deep-import paths.</p>
+
+      <pre><code><span class="tok-k">import</span> {
+  <span class="tok-t">Axis</span>,
+  <span class="tok-t">ModelRegistry</span>,
+  <span class="tok-t">OpenSearchAdapter</span>,
+  <span class="tok-t">OllamaEmbeddingProvider</span>,
+  <span class="tok-t">OpenAICompatibleEmbeddingProvider</span>,
+  <span class="tok-t">defineModel</span>,
+  <span class="tok-t">SecurityContextError</span>,
+  <span class="tok-t">buildOpenSearchSecurityFilters</span>,
+} <span class="tok-k">from</span> <span class="tok-s">"axis"</span>;
+
+<span class="tok-k">import type</span> {
+  <span class="tok-t">AxisQuery</span>, <span class="tok-t">AxisSecurityConfig</span>, <span class="tok-t">ModelDefinition</span>,
+  <span class="tok-t">EmbeddingProvider</span>, <span class="tok-t">SearchAdapter</span>, <span class="tok-t">SearchQuery</span>, <span class="tok-t">QueryResult</span>,
+} <span class="tok-k">from</span> <span class="tok-s">"axis"</span>;</code></pre>
+    </section>
+
+    <!-- Section 6: Define & Register Models -->
+    <section id="define-models" class="section-divider">
+      <h2>6. Define &amp; Register Models</h2>
+      <p>The middleware must define at least one <code>ModelDefinition</code> and register it before instantiating <code>Axis</code>. Queries for unregistered models throw <code>ResolutionError</code> (HTTP 422).</p>
+
+      <pre><code><span class="tok-k">const</span> <span class="tok-p">registry</span> = <span class="tok-k">new</span> <span class="tok-f">ModelRegistry</span>();
+<span class="tok-p">registry</span>.<span class="tok-f">register</span>(<span class="tok-p">PurchaseRequisitions</span>);
+
+<span class="tok-c">// Pass registry into Axis — private registry is recommended</span>
+<span class="tok-k">const</span> <span class="tok-p">axis</span> = <span class="tok-k">new</span> <span class="tok-f">Axis</span>({ <span class="tok-p">database</span>: { <span class="tok-p">url</span> }, <span class="tok-p">registry</span> });</code></pre>
+    </section>
+
+    <!-- Section 7: Instantiate -->
+    <section id="instantiate" class="section-divider">
+      <h2>7. Instantiate Axis</h2>
+      <p>Cache is <strong>explicitly disabled</strong>. The Axis instance is constructed with <code>cache: { enabled: false }</code> so every request always reaches OpenSearch. The library never reads <code>process.env</code> — the middleware passes everything resolved.</p>
+
+      <pre><code><span class="tok-k">const</span> <span class="tok-p">axis</span> = <span class="tok-k">new</span> <span class="tok-f">Axis</span>({
+  <span class="tok-p">database</span>: { <span class="tok-p">url</span>: <span class="tok-p">databaseUrl</span> },    <span class="tok-c">// ✅ Required</span>
+  <span class="tok-p">registry</span>,                             <span class="tok-c">// Model registry</span>
+  <span class="tok-p">cache</span>: { <span class="tok-p">enabled</span>: <span class="tok-b">false</span> },            <span class="tok-c">// ❌ Cache explicitly off</span>
+  <span class="tok-p">security</span>,                             <span class="tok-c">// Security mappings (when JWT enabled)</span>
+  <span class="tok-p">searchAdapter</span>,                        <span class="tok-c">// OpenSearch adapter</span>
+  <span class="tok-p">embeddings</span>: { <span class="tok-p">instance</span>: <span class="tok-p">provider</span> }, <span class="tok-c">// Embedding provider</span>
+});</code></pre>
+    </section>
+
+    <!-- Section 8: OpenSearch -->
+    <section id="opensearch" class="section-divider">
+      <h2>8. Wire OpenSearch Adapter</h2>
+      <p>The middleware is OpenSearch-only over HTTP. Without this, <code>/search</code> and <code>/os/*</code> return 503.</p>
+
+      <pre><code><span class="tok-k">import</span> { <span class="tok-t">OpenSearchAdapter</span> } <span class="tok-k">from</span> <span class="tok-s">"axis"</span>;
+
+<span class="tok-k">const</span> <span class="tok-p">searchAdapter</span> = <span class="tok-k">new</span> <span class="tok-f">OpenSearchAdapter</span>({
+  <span class="tok-p">enabled</span>: <span class="tok-b">true</span>,
+  <span class="tok-p">url</span>: process.env.<span class="tok-p">OPENSEARCH_URL</span>,          <span class="tok-c">// http://10.0.2.147:9200</span>
+  <span class="tok-c">// username / password only if cluster requires auth</span>
+  <span class="tok-p">ssl</span>: { <span class="tok-p">rejectUnauthorized</span>: <span class="tok-b">true</span> },
+});</code></pre>
+
+      <p>Each model must also declare a <code>search</code> block for it to be indexed and searchable:</p>
+      <pre><code><span class="tok-p">search</span>: {
+  <span class="tok-p">index</span>: <span class="tok-s">"purchase-requisitions"</span>,   <span class="tok-c">// OpenSearch index name</span>
+  <span class="tok-p">searchable</span>: [<span class="tok-s">"department"</span>],        <span class="tok-c">// full-text search axes</span>
+  <span class="tok-p">embeddingInput</span>: [<span class="tok-s">"department"</span>],   <span class="tok-c">// axes concatenated as embedding input text</span>
+  <span class="tok-p">embeddingField</span>: <span class="tok-s">"embedding"</span>,      <span class="tok-c">// knn_vector field name in OpenSearch</span>
+}</code></pre>
+    </section>
+
+    <!-- Section 9: Embeddings -->
+    <section id="embeddings" class="section-divider">
+      <h2>9. Wire Embedding Provider</h2>
+      <p>Required for <code>search.type = "semantic"</code> or <code>"hybrid"</code>. This deployment uses <code>openai-compatible</code>:</p>
+
+      <pre><code><span class="tok-k">import</span> { <span class="tok-t">OpenAICompatibleEmbeddingProvider</span> } <span class="tok-k">from</span> <span class="tok-s">"axis"</span>;
+
+<span class="tok-k">const</span> <span class="tok-p">provider</span> = <span class="tok-k">new</span> <span class="tok-f">OpenAICompatibleEmbeddingProvider</span>({
+  <span class="tok-p">baseURL</span>: process.env.<span class="tok-p">EMBEDDING_URL</span>,              <span class="tok-c">// http://10.0.2.147:8000</span>
+  <span class="tok-p">model</span>:   process.env.<span class="tok-p">EMBEDDING_MODEL</span>,             <span class="tok-c">// sentence-transformers/all-MiniLM-L6-v2</span>
+  <span class="tok-p">dimensions</span>: <span class="tok-f">Number</span>(process.env.<span class="tok-p">EMBEDDING_DIMENSIONS</span>), <span class="tok-c">// 384</span>
+});</code></pre>
+
+      <p>For Ollama deployments, swap to <code>OllamaEmbeddingProvider</code> with the same options shape.</p>
+    </section>
+
+    <!-- Section 10: Security & JWT -->
+    <section id="security" class="section-divider">
+      <h2>10. Wire Security &amp; JWT Auth</h2>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">🔐</span>
+        <div class="callout-content">
+          <p><strong>Ownership rule:</strong> Axis handles <em>authorization</em> (row-level security context). The middleware handles <em>authentication</em> (JWT verification). The library never sees tokens.</p>
+        </div>
+      </div>
+
+      <ol class="steps">
+        <li>
+          <strong>Middleware verifies the JWT</strong>
+          <pre><code><span class="tok-k">import</span> <span class="tok-p">jwt</span> <span class="tok-k">from</span> <span class="tok-s">"jsonwebtoken"</span>;
+<span class="tok-k">const</span> <span class="tok-p">payload</span> = <span class="tok-p">jwt</span>.<span class="tok-f">verify</span>(<span class="tok-p">token</span>, <span class="tok-p">secret</span>);
+<span class="tok-c">// Accepts: { sub, tenantId, roles? }  OR  { userId, tenantId, role? }</span></code></pre>
+        </li>
+        <li>
+          <strong>Convert claims to AxisContext</strong>
+          <pre><code><span class="tok-k">import type</span> { <span class="tok-t">AxisContext</span> } <span class="tok-k">from</span> <span class="tok-s">"axis"</span>;
+<span class="tok-k">const</span> <span class="tok-p">context</span>: <span class="tok-t">AxisContext</span> = {
+  <span class="tok-p">user</span>:   <span class="tok-p">payload</span>.<span class="tok-p">sub</span>      ?? <span class="tok-p">payload</span>.<span class="tok-p">userId</span>,
+  <span class="tok-p">tenant</span>: <span class="tok-p">payload</span>.<span class="tok-p">tenantId</span> ?? <span class="tok-p">payload</span>.<span class="tok-p">tenant</span>,
+  <span class="tok-p">roles</span>:  <span class="tok-p">payload</span>.<span class="tok-p">roles</span>    ?? [],
+};</code></pre>
+        </li>
+        <li>
+          <strong>Register security mappings with Axis</strong>
+          <pre><code><span class="tok-k">const</span> <span class="tok-p">security</span>: <span class="tok-t">AxisSecurityConfig</span> = {
+  <span class="tok-p">mappings</span>: {
+    <span class="tok-p">tenant</span>: {
+      <span class="tok-p">contextKey</span>: <span class="tok-s">"tenant"</span>,
+      <span class="tok-p">column</span>: <span class="tok-s">"tenant_id"</span>,
+      <span class="tok-p">sessionKey</span>: <span class="tok-s">"app.tenant_id"</span>,
+      <span class="tok-p">required</span>: <span class="tok-b">true</span>,
+    },
+    <span class="tok-p">user</span>: {
+      <span class="tok-p">contextKey</span>: <span class="tok-s">"user"</span>,
+      <span class="tok-p">column</span>: <span class="tok-s">"created_by"</span>,
+      <span class="tok-p">sessionKey</span>: <span class="tok-s">"app.user_id"</span>,
+      <span class="tok-p">required</span>: <span class="tok-b">true</span>,
+      <span class="tok-p">searchField</span>: <span class="tok-s">"createdBy"</span>,  <span class="tok-c">// OpenSearch term filter field</span>
+    },
+  },
+};</code></pre>
+        </li>
+        <li>
+          <strong>Pass context per request</strong>
+          <pre><code><span class="tok-p">app</span>.<span class="tok-f">post</span>(<span class="tok-s">"/search"</span>, <span class="tok-k">async</span> (<span class="tok-p">req</span>, <span class="tok-p">res</span>) <span class="tok-k">=&gt;</span> {
+  <span class="tok-k">const</span> <span class="tok-p">context</span> = <span class="tok-p">req</span>.<span class="tok-p">axisContext</span>; <span class="tok-c">// set by auth middleware</span>
+  <span class="tok-k">const</span> <span class="tok-p">result</span> = <span class="tok-k">await</span> <span class="tok-p">axis</span>.<span class="tok-f">searchDocuments</span>(<span class="tok-p">req</span>.<span class="tok-p">body</span>, { <span class="tok-p">context</span> });
+  <span class="tok-p">res</span>.<span class="tok-f">json</span>(<span class="tok-p">result</span>);
+});</code></pre>
+        </li>
+      </ol>
+    </section>
+
+    <!-- Section 11: HTTP Routes -->
+    <section id="routes" class="section-divider">
+      <h2>11. Expose HTTP Routes</h2>
+      <p>This is the <strong>current active route set</strong>. The <code>/query</code> SQL route and all <code>/cache/*</code> routes have been removed — the middleware is OpenSearch-only over HTTP.</p>
+
+      <table>
+        <thead>
+          <tr><th>Method</th><th>Path</th><th>Auth?</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>GET</code></td><td><code>/health</code></td><td>No</td><td>Liveness probe — <code>{ ok: true }</code></td></tr>
+          <tr><td><code>GET</code></td><td><code>/models</code></td><td>No</td><td>Lists all registered models with axes and metrics</td></tr>
+          <tr><td><code>GET</code></td><td><code>/os/indices</code></td><td>Yes (JWT)</td><td>OpenSearch index names + doc counts per model</td></tr>
+          <tr><td><code>GET</code></td><td><code>/os/docs/:model</code></td><td>Yes (JWT)</td><td>Sample indexed documents (embedding vectors truncated)</td></tr>
+          <tr><td><code>POST</code></td><td><code>/search</code></td><td>Yes (JWT)</td><td>Full-text / semantic / hybrid search via <code>axis.searchDocuments()</code></td></tr>
+          <tr><td><code>POST</code></td><td><code>/search/:model</code></td><td>Yes (JWT)</td><td>Convenience: model name from URL path</td></tr>
+        </tbody>
+      </table>
+
+      <blockquote>
+        <strong>Removed routes:</strong> <code>POST /query</code>, <code>POST /query/:model</code>, all <code>GET|DELETE|POST /cache/*</code>. These are commented out in <code>app.ts</code>. SQL via <code>axis.query()</code> is reserved for future cron jobs at the library level only.
+      </blockquote>
+    </section>
+
+    <!-- Section 12: Error Handling -->
+    <section id="errors" class="section-divider">
+      <h2>12. Handle Errors Correctly</h2>
+      <p>Axis throws typed errors. The middleware must map them to correct HTTP status codes.</p>
+
+      <table>
+        <thead>
+          <tr><th>Error Name</th><th>HTTP Status</th><th>Trigger</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>ValidationError</code></td><td>400</td><td>Malformed <code>AxisQuery</code></td></tr>
+          <tr><td><code>SyntaxError</code> (body-parser)</td><td>400</td><td>Malformed JSON body</td></tr>
+          <tr><td><code>AuthError</code></td><td>401 / 403</td><td>JWT missing / invalid / expired</td></tr>
+          <tr><td><code>SecurityContextError</code></td><td>403</td><td>Required security context value absent</td></tr>
+          <tr><td><code>ResolutionError</code></td><td>422</td><td>Unknown axis/metric, unregistered model</td></tr>
+          <tr><td><code>CompilationError</code></td><td>422</td><td>Query cannot be compiled to DSL</td></tr>
+          <tr><td><code>ExecutionError</code></td><td>502</td><td>Search execution failed</td></tr>
+          <tr><td>Other</td><td>500</td><td>Unexpected internal error</td></tr>
+        </tbody>
+      </table>
+
+      <p>A 4-argument error handler is mandatory — Express identifies error handlers by arity. Register it last:</p>
+      <pre><code><span class="tok-c">// Must be the LAST app.use() call</span>
+<span class="tok-p">app</span>.<span class="tok-f">use</span>((<span class="tok-p">err</span>: <span class="tok-t">unknown</span>, <span class="tok-p">_req</span>: <span class="tok-t">Request</span>, <span class="tok-p">res</span>: <span class="tok-t">Response</span>, <span class="tok-p">_next</span>: <span class="tok-t">NextFunction</span>) <span class="tok-k">=&gt;</span> {
+  <span class="tok-p">res</span>.<span class="tok-f">status</span>(<span class="tok-f">statusForError</span>(<span class="tok-p">err</span>)).<span class="tok-f">json</span>({
+    <span class="tok-p">error</span>: {
+      <span class="tok-p">message</span>: <span class="tok-p">err</span> <span class="tok-k">instanceof</span> <span class="tok-t">Error</span> ? <span class="tok-p">err</span>.<span class="tok-p">message</span> : <span class="tok-f">String</span>(<span class="tok-p">err</span>),
+      <span class="tok-p">code</span>: <span class="tok-p">err</span> <span class="tok-k">instanceof</span> <span class="tok-t">Error</span> ? <span class="tok-p">err</span>.<span class="tok-p">name</span> : <span class="tok-s">"InternalError"</span>,
+    },
+  });
+});</code></pre>
+    </section>
+
+    <!-- Section 13: Graceful Shutdown -->
+    <section id="shutdown" class="section-divider">
+      <h2>13. Graceful Shutdown</h2>
+      <p><code>axis.close()</code> must be called on process termination. This drains the PostgreSQL pool and closes all connections to OpenSearch and the embedding provider.</p>
+
+      <pre><code><span class="tok-k">async function</span> <span class="tok-f">shutdown</span>(<span class="tok-p">signal</span>: <span class="tok-t">string</span>): <span class="tok-t">Promise</span>&lt;<span class="tok-t">void</span>&gt; {
+  <span class="tok-p">server</span>.<span class="tok-f">close</span>();
+  <span class="tok-k">await</span> <span class="tok-p">axis</span>.<span class="tok-f">close</span>(); <span class="tok-c">// closes: pg Pool + OpenSearch + embedding provider</span>
+  <span class="tok-p">process</span>.<span class="tok-f">exit</span>(<span class="tok-n">0</span>);
+}
+<span class="tok-p">process</span>.<span class="tok-f">on</span>(<span class="tok-s">"SIGINT"</span>,  () <span class="tok-k">=&gt;</span> <span class="tok-k">void</span> <span class="tok-f">shutdown</span>(<span class="tok-s">"SIGINT"</span>));
+<span class="tok-p">process</span>.<span class="tok-f">on</span>(<span class="tok-s">"SIGTERM"</span>, () <span class="tok-k">=&gt;</span> <span class="tok-k">void</span> <span class="tok-f">shutdown</span>(<span class="tok-s">"SIGTERM"</span>));</code></pre>
+
+      <div class="callout callout-danger">
+        <span class="callout-icon">🚫</span>
+        <div class="callout-content">
+          <p>Not calling <code>axis.close()</code> causes the Node.js process to hang indefinitely — the open pg pool keeps the event loop alive.</p>
+        </div>
+      </div>
+    </section>
+
+    <hr>
+
+    <!-- ═══════════════════════ PART 3: REFERENCE ═══════════════════════ -->
+    <h1>Part 3 — Reference</h1>
+
+    <!-- Section 14: Model Contract -->
+    <section id="model-contract" class="section-divider">
+      <h2>14. Model Definition Contract</h2>
+
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Required?</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>name</code></td><td><code>string</code></td><td><span class="badge badge-required">Required</span></td><td>Unique per registry. Used as <code>AxisQuery.model</code>.</td></tr>
+          <tr><td><code>source</code></td><td><code>ModelSource</code></td><td><span class="badge badge-required">Required</span></td><td><code>table</code>, <code>sql</code>, or <code>function</code> variant.</td></tr>
+          <tr><td><code>axes</code></td><td><code>Record&lt;string, AxisDefinition&gt;</code></td><td><span class="badge badge-required">Required</span></td><td>Dimensions / group-by fields. Must have at least one.</td></tr>
+          <tr><td><code>metrics</code></td><td><code>Record&lt;string, MetricDefinition&gt;</code></td><td><span class="badge badge-required">Required</span></td><td>Aggregations. Must have at least one.</td></tr>
+          <tr><td><code>security</code></td><td><code>ModelSecurity</code></td><td><span class="badge badge-optional">Optional</span></td><td>Row-level restriction hook.</td></tr>
+          <tr><td><code>search</code></td><td><code>ModelSearchDefinition</code></td><td><span class="badge badge-required">Required here</span></td><td>Index name, searchable axes, embedding input, vector field. Required because the middleware is OpenSearch-only.</td></tr>
+          <tr><td><code>description</code></td><td><code>string</code></td><td><span class="badge badge-optional">Optional</span></td><td>Human-readable, shown in <code>GET /models</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>ModelSource Variants</h3>
+      <pre><code>{ <span class="tok-p">type</span>: <span class="tok-s">"table"</span>;    <span class="tok-p">table</span>: <span class="tok-t">string</span> }                       <span class="tok-c">// e.g. "upeg.requisition_deails"</span>
+{ <span class="tok-p">type</span>: <span class="tok-s">"sql"</span>;      <span class="tok-p">sql</span>: <span class="tok-t">string</span> }
+{ <span class="tok-p">type</span>: <span class="tok-s">"function"</span>; <span class="tok-p">name</span>: <span class="tok-t">string</span>; <span class="tok-p">args</span>?: <span class="tok-t">string</span>[] }</code></pre>
+
+      <h3>Full Model Example</h3>
+      <pre><code><span class="tok-k">import</span> { <span class="tok-t">defineModel</span> } <span class="tok-k">from</span> <span class="tok-s">"axis"</span>;
+
+<span class="tok-k">export const</span> <span class="tok-p">PurchaseRequisitions</span> = <span class="tok-f">defineModel</span>({
+  <span class="tok-p">name</span>: <span class="tok-s">"PurchaseRequisitions"</span>,
+  <span class="tok-p">source</span>: { <span class="tok-p">type</span>: <span class="tok-s">"table"</span>, <span class="tok-p">table</span>: <span class="tok-s">"upeg.requisition_deails"</span> },
+  <span class="tok-p">axes</span>: {
+    <span class="tok-p">id</span>:         { <span class="tok-p">sql</span>: <span class="tok-s">"requisition_id"</span>, <span class="tok-p">type</span>: <span class="tok-s">"string"</span>, <span class="tok-p">primaryKey</span>: <span class="tok-b">true</span> },
+    <span class="tok-p">status</span>:     { <span class="tok-p">sql</span>: <span class="tok-s">"status"</span>,          <span class="tok-p">type</span>: <span class="tok-s">"number"</span> },
+    <span class="tok-p">department</span>: { <span class="tok-p">sql</span>: <span class="tok-s">"department_name"</span>,  <span class="tok-p">type</span>: <span class="tok-s">"string"</span> },
+    <span class="tok-p">createdBy</span>:  { <span class="tok-p">sql</span>: <span class="tok-s">"created_by"</span>,      <span class="tok-p">type</span>: <span class="tok-s">"string"</span> },
+    <span class="tok-p">amount</span>:     { <span class="tok-p">sql</span>: <span class="tok-s">"amount"</span>,          <span class="tok-p">type</span>: <span class="tok-s">"number"</span> },
+    <span class="tok-p">createdAt</span>:  { <span class="tok-p">sql</span>: <span class="tok-s">"created_date"</span>,    <span class="tok-p">type</span>: <span class="tok-s">"time"</span> },
+  },
+  <span class="tok-p">metrics</span>: {
+    <span class="tok-p">newCount</span>:     { <span class="tok-p">type</span>: <span class="tok-s">"count"</span> },
+    <span class="tok-p">pendingCount</span>: { <span class="tok-p">type</span>: <span class="tok-s">"count"</span>, <span class="tok-p">sql</span>: <span class="tok-s">"requisition_id"</span>,
+                    <span class="tok-p">filters</span>: [{ <span class="tok-p">field</span>: <span class="tok-s">"status"</span>, <span class="tok-p">operator</span>: <span class="tok-s">"equals"</span>, <span class="tok-p">value</span>: <span class="tok-n">1</span> }] },
+  },
+  <span class="tok-p">security</span>: {
+    <span class="tok-p">function</span>: { <span class="tok-p">name</span>: <span class="tok-s">"upeg.get_requisitions_for_user"</span>, <span class="tok-p">args</span>: [<span class="tok-s">"userId"</span>] },
+  },
+  <span class="tok-p">search</span>: {
+    <span class="tok-p">index</span>: <span class="tok-s">"purchase-requisitions"</span>,
+    <span class="tok-p">searchable</span>: [<span class="tok-s">"department"</span>],
+    <span class="tok-p">embeddingInput</span>: [<span class="tok-s">"department"</span>],
+    <span class="tok-p">embeddingField</span>: <span class="tok-s">"embedding"</span>,
+  },
+});</code></pre>
+    </section>
+
+    <!-- Section 15: Query DSL -->
+    <section id="query-dsl" class="section-divider">
+      <h2>15. Query DSL Contract</h2>
+      <p>Clients send <code>AxisQuery</code> to <code>/search</code>. Axis validates at runtime — pass <code>req.body</code> directly.</p>
+
+      <pre><code><span class="tok-k">interface</span> <span class="tok-t">AxisQuery</span> {
+  <span class="tok-p">model</span>: <span class="tok-t">string</span>;        <span class="tok-c">// Required — registered model name</span>
+  <span class="tok-p">axes</span>?: <span class="tok-t">string</span>[];      <span class="tok-c">// GROUP BY dimensions</span>
+  <span class="tok-p">metrics</span>?: <span class="tok-t">string</span>[];  <span class="tok-c">// Aggregations</span>
+  <span class="tok-p">filters</span>?: <span class="tok-t">Filter</span>[];  <span class="tok-c">// WHERE conditions</span>
+  <span class="tok-p">orderBy</span>?: <span class="tok-t">OrderBy</span>[]; <span class="tok-c">// Result ordering</span>
+  <span class="tok-p">limit</span>?: <span class="tok-t">number</span>;
+  <span class="tok-p">offset</span>?: <span class="tok-t">number</span>;
+  <span class="tok-p">search</span>?: <span class="tok-t">SearchInput</span>; <span class="tok-c">// Required for /search</span>
+  <span class="tok-p">cacheTtl</span>?: <span class="tok-t">number</span>;   <span class="tok-c">// Ignored — cache is disabled</span>
+}</code></pre>
+
+      <h3>SearchInput</h3>
+      <pre><code>{
+  <span class="tok-p">type</span>: <span class="tok-s">"fulltext"</span> | <span class="tok-s">"semantic"</span> | <span class="tok-s">"hybrid"</span>;
+  <span class="tok-p">text</span>: <span class="tok-t">string</span>;
+  <span class="tok-p">fields</span>?: <span class="tok-t">string</span>[];  <span class="tok-c">// Override default searchable axes</span>
+  <span class="tok-p">k</span>?: <span class="tok-t">number</span>;        <span class="tok-c">// k-NN neighbors for vector search</span>
+}</code></pre>
+
+      <h3>Filter Operators</h3>
+      <pre><code><span class="tok-s">"equals"</span> | <span class="tok-s">"notEquals"</span> | <span class="tok-s">"greaterThan"</span> | <span class="tok-s">"greaterThanOrEqual"</span>
+| <span class="tok-s">"lessThan"</span> | <span class="tok-s">"lessThanOrEqual"</span> | <span class="tok-s">"in"</span> | <span class="tok-s">"notIn"</span>
+| <span class="tok-s">"contains"</span> | <span class="tok-s">"startsWith"</span> | <span class="tok-s">"endsWith"</span>
+| <span class="tok-s">"isNull"</span> | <span class="tok-s">"isNotNull"</span></code></pre>
+    </section>
+
+    <!-- Section 16: Security Contract -->
+    <section id="security-contract" class="section-divider">
+      <h2>16. Security Context Contract</h2>
+      <p>With <code>AXIS_JWT_SECRET</code> set, every request to <code>/search</code> and <code>/os/*</code> must carry <code>Authorization: Bearer &lt;JWT&gt;</code>.</p>
+
+      <table>
+        <thead>
+          <tr><th>JWT Claim</th><th>Required?</th><th>Maps to</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>sub</code> or <code>userId</code></td><td><span class="badge badge-required">Required</span></td><td><code>AxisContext.user</code></td></tr>
+          <tr><td><code>tenantId</code> or <code>tenant</code></td><td><span class="badge badge-required">Required</span></td><td><code>AxisContext.tenant</code></td></tr>
+          <tr><td><code>roles</code> or <code>role</code></td><td><span class="badge badge-optional">Optional</span></td><td><code>AxisContext.roles</code></td></tr>
+        </tbody>
+      </table>
+
+      <p>Because cache is disabled, there is no cache-key isolation concern. Security context is still applied as PostgreSQL <code>SET LOCAL</code> session variables and as OpenSearch term filters (<code>createdBy</code>, <code>tenant_id</code>) on every request.</p>
+    </section>
+
+    <!-- Section 17: Feature Matrix -->
+    <section id="feature-matrix" class="section-divider">
+      <h2>17. Feature Matrix</h2>
+
+      <table>
+        <thead>
+          <tr><th>Feature</th><th>Infrastructure</th><th>Env Key</th><th>Required?</th><th>Current Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SQL query (library-level)</td>
+            <td>PostgreSQL</td>
+            <td><code>DATABASE_URL</code></td>
+            <td><span class="badge badge-required">Yes</span></td>
+            <td><span class="badge badge-active">✓ Active</span> (internal only)</td>
+          </tr>
+          <tr>
+            <td>HTTP <code>/query</code> route</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td><span class="badge badge-inactive">✗ Removed</span></td>
+          </tr>
+          <tr>
+            <td>Cache</td>
+            <td>—</td>
+            <td><code>CACHE_ENABLED</code></td>
+            <td><span class="badge badge-optional">No</span></td>
+            <td><span class="badge badge-inactive">✗ Disabled in code</span></td>
+          </tr>
+          <tr>
+            <td>Valkey / Redis</td>
+            <td>Valkey</td>
+            <td><code>VALKEY_URL</code></td>
+            <td><span class="badge badge-optional">No</span></td>
+            <td><span class="badge badge-inactive">✗ Not configured</span></td>
+          </tr>
+          <tr>
+            <td>JWT authentication</td>
+            <td>—</td>
+            <td><code>AXIS_JWT_SECRET</code></td>
+            <td><span class="badge badge-optional">No</span></td>
+            <td><span class="badge badge-active">✓ Active</span></td>
+          </tr>
+          <tr>
+            <td>PostgreSQL RLS (security context)</td>
+            <td>PG RLS policies</td>
+            <td><code>security</code> config</td>
+            <td><span class="badge badge-optional">No</span></td>
+            <td><span class="badge badge-active">✓ Active</span></td>
+          </tr>
+          <tr>
+            <td>Full-text search</td>
+            <td>OpenSearch</td>
+            <td><code>OPENSEARCH_URL</code></td>
+            <td><span class="badge badge-optional">No</span></td>
+            <td><span class="badge badge-active">✓ Active</span></td>
+          </tr>
+          <tr>
+            <td>Semantic search</td>
+            <td>OpenSearch + Embedding</td>
+            <td>both URLs</td>
+            <td><span class="badge badge-optional">No</span></td>
+            <td><span class="badge badge-active">✓ Active</span></td>
+          </tr>
+          <tr>
+            <td>Hybrid search</td>
+            <td>OpenSearch + Embedding</td>
+            <td>both URLs</td>
+            <td><span class="badge badge-optional">No</span></td>
+            <td><span class="badge badge-active">✓ Active</span></td>
+          </tr>
+          <tr>
+            <td>Document indexing</td>
+            <td>OpenSearch</td>
+            <td><code>OPENSEARCH_URL</code></td>
+            <td><span class="badge badge-optional">No</span></td>
+            <td><span class="badge badge-active">✓ Active</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Section 18: Pitfalls -->
+    <section id="pitfalls" class="section-divider">
+      <h2>18. Common Pitfalls</h2>
+
+      <table>
+        <thead>
+          <tr><th>Problem</th><th>Cause</th><th>Fix</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Cannot find module 'axis'</code></td>
+            <td>Stale <code>.tgz</code> in <code>node_modules</code></td>
+            <td><code>npm pack</code> in <code>axis/</code>, then <code>npm install</code> in middleware</td>
+          </tr>
+          <tr>
+            <td><code>ERR_REQUIRE_ESM</code></td>
+            <td>App is CJS, Axis is ESM-only</td>
+            <td>Add <code>"type": "module"</code>, switch TS to <code>NodeNext</code></td>
+          </tr>
+          <tr>
+            <td><code>Database configuration requires 'url' or 'host'</code></td>
+            <td><code>DATABASE_URL</code> is empty</td>
+            <td>Set the environment variable</td>
+          </tr>
+          <tr>
+            <td><code>Model "X" is not registered</code></td>
+            <td><code>registry.register()</code> not called</td>
+            <td>Register all models before the first request</td>
+          </tr>
+          <tr>
+            <td>Semantic search fails: "requires an embedding provider"</td>
+            <td>No embedding provider configured</td>
+            <td>Set <code>EMBEDDING_URL</code> + <code>EMBEDDING_MODEL</code></td>
+          </tr>
+          <tr>
+            <td>Search returns 503</td>
+            <td><code>searchAdapter</code> not passed to Axis</td>
+            <td>Set <code>OPENSEARCH_URL</code></td>
+          </tr>
+          <tr>
+            <td>JWT 401 on every request</td>
+            <td>Token expired or wrong secret</td>
+            <td>Regenerate token; verify <code>AXIS_JWT_SECRET</code> matches the signing key</td>
+          </tr>
+          <tr>
+            <td>Embedding dimension mismatch error</td>
+            <td><code>EMBEDDING_DIMENSIONS</code> doesn't match OpenSearch mapping</td>
+            <td>Both must be <code>384</code> (or whatever the model outputs)</td>
+          </tr>
+          <tr>
+            <td>Node process hangs on exit</td>
+            <td><code>axis.close()</code> not called</td>
+            <td>Add <code>SIGINT</code> / <code>SIGTERM</code> handlers</td>
+          </tr>
+          <tr>
+            <td><code>/query</code> returns 404</td>
+            <td>SQL HTTP route was removed from this middleware</td>
+            <td>Use <code>/search</code> — this middleware is OpenSearch-only over HTTP</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </div>
+</body>
+</html>

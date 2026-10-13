@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OPENSEARCH — Usage Deep-Dive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #000000; --bg-secondary: #0a0a0a; --bg-tertiary: #161616;
+      --text-primary: #f5f7fa; --text-secondary: #cbd5e1;
+      --accent-pink: #ec4899; --accent-pink-light: #f472b6;
+      --border-color: #262626; --code-bg: #0a0a0a; --code-border: #262626;
+    }
+    body { font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background-color: var(--bg-primary); color: var(--text-primary); line-height: 1.6; font-size: 16px; }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+    header { text-align: center; margin-bottom: 60px; padding-bottom: 40px; border-bottom: 1px solid var(--border-color); }
+    header h1 { font-size: 48px; font-weight: 700; margin-bottom: 12px; background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-pink-light) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    header p { font-size: 18px; color: var(--text-secondary); font-weight: 300; }
+    .toc { background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 32px; margin-bottom: 60px; }
+    .toc h2 { color: var(--accent-pink); margin-bottom: 20px; font-size: 20px; margin-top: 0; }
+    .toc ol { list-style: none; counter-reset: item; margin: 0; }
+    .toc li { counter-increment: item; margin-bottom: 12px; padding-left: 8px; }
+    .toc li:before { content: counter(item) ". "; color: var(--accent-pink); font-weight: 600; }
+    .toc a { color: var(--text-secondary); text-decoration: none; transition: color 0.3s ease; }
+    .toc a:hover { color: var(--accent-pink); }
+    h2 { font-size: 32px; font-weight: 700; margin: 48px 0 20px 0; color: var(--accent-pink); scroll-margin-top: 80px; }
+    h3 { font-size: 24px; font-weight: 600; margin: 36px 0 16px 0; color: var(--text-primary); }
+    p { margin-bottom: 16px; color: var(--text-secondary); line-height: 1.8; }
+    a { color: var(--accent-pink); text-decoration: none; transition: color 0.3s ease; }
+    a:hover { color: var(--accent-pink-light); text-decoration: underline; }
+    pre { background-color: var(--code-bg); border: 1px solid var(--code-border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 24px 0; font-size: 14px; line-height: 1.6; }
+    code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #d4d4d4; }
+    p code, li code, td code, h3 code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background-color: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+    ul, ol { margin-left: 24px; margin-bottom: 16px; }
+    li { margin-bottom: 12px; color: var(--text-secondary); line-height: 1.8; }
+    li strong { color: var(--text-primary); }
+    blockquote { border-left: 4px solid var(--accent-pink); background-color: rgba(236, 72, 153, 0.05); padding: 16px 20px; margin: 24px 0; border-radius: 4px; color: var(--text-secondary); }
+    blockquote strong { color: var(--text-primary); }
+    section { margin-bottom: 48px; }
+    @media (max-width: 768px) { .container { padding: 24px 16px; } header h1 { font-size: 36px; } h2 { font-size: 24px; } h3 { font-size: 18px; } pre { font-size: 12px; padding: 16px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>OPENSEARCH</h1>
+      <p>How this stack uses OpenSearch — transport, DSL, execution, normalization, indexing, vectors</p>
+    </header>
+
+    <div class="toc">
+      <h2>Table of Contents</h2>
+      <ol>
+        <li><a href="#conn">Connection</a></li>
+        <li><a href="#shape">Request shape</a></li>
+        <li><a href="#dsl">DSL compiler</a></li>
+        <li><a href="#exec">Execution policy</a></li>
+        <li><a href="#norm">Response normalization</a></li>
+        <li><a href="#indexing">Indexing</a></li>
+        <li><a href="#embed">Embeddings</a></li>
+        <li><a href="#gotchas">Gotchas</a></li>
+      </ol>
+    </div>
+
+    <section id="conn">
+      <h2>1. Connection</h2>
+      <p><code>OpenSearchAdapter</code> wraps the official client (<code>node / auth / ssl</code> from config). <code>indexPrefix</code> namespaces indices per environment. An injectable client serves tests; the <code>SearchAdapter</code> interface keeps the engine transport-agnostic.</p>
+    </section>
+
+    <section id="shape">
+      <h2>2. Request shape</h2>
+      <pre><code>SearchParams { index, query, size?, from?, sort?, trackTotalHits?, aggs? }
+SearchQuery  { bool?, match?, matchAll?, knn? }
+BoolQuery    { must?, should?, filter?, mustNot?, minimum_should_match? }
+KNNQuery     { field, vector, k, numCandidates?, filter? }</code></pre>
+      <p>The adapter converts this typed form to the raw OS body and maps <code>took / hits / total / aggregations</code> back to <code>SearchResult</code>.</p>
+    </section>
+
+    <section id="dsl">
+      <h2>3. DSL compiler</h2>
+      <p><code>compileToOpenSearch(resolved, { securityFilters?, queryVector? }) → { index, body }</code>. Index from <code>model.search.index</code>.</p>
+      <h3>buildDSL — filter / agg queries</h3>
+      <ul>
+        <li><code>bool</code> combining filters + security terms; <code>size/from</code> from <code>limit/offset</code>; <code>sort</code> from <code>orderBy</code></li>
+        <li><code>_source</code> limited to requested axes — narrow payloads</li>
+        <li>One metric agg per metric (<code>value_count / sum / avg / min / max / cardinality</code>); with axes, a <code>&lt;name&gt;_terms</code> agg per axis (<code>terms: { field: "&lt;field&gt;.keyword" }</code>) nesting the metric aggs — the GROUP BY equivalent</li>
+      </ul>
+      <h3>buildSearchDSL — search queries</h3>
+      <ul>
+        <li><strong>fulltext:</strong> <code>match</code> per searchable field with <code>minimum_should_match</code></li>
+        <li><strong>semantic:</strong> <code>knn: { embedding: { vector, k } }</code> — vector produced server-side (the compiler never calls the provider)</li>
+        <li><strong>hybrid:</strong> both clauses combined; security terms merged into <code>bool.filter</code> so isolation applies before scoring</li>
+      </ul>
+      <p>Text axes filter/sort/group on the <code>.keyword</code> subfield; numerics are coerced to real numbers at index time. <code>debugCompileToOpenSearch(input, model)</code> returns <code>{ query, ast, resolved, dsl }</code> for inspection.</p>
+    </section>
+
+    <section id="exec">
+      <h2>4. Execution policy</h2>
+      <p>Metric queries (aggs present) go out with <strong><code>size: 0</code></strong> — computed cluster-side, zero hits transferred. Document queries send the real <code>size</code> (default 100). Transport failure → <code>ExecutionError("Search execution failed.")</code>.</p>
+    </section>
+
+    <section id="norm">
+      <h2>5. Response normalization</h2>
+      <ul>
+        <li>Metric-only → single row (<code>{ newCount: 6 }</code>), like <code>SELECT COUNT(*)</code> without GROUP BY</li>
+        <li>Axes + metrics → one row per terms bucket (<code>{ department: "Eng", newCount: 2 }</code>)</li>
+        <li><code>metricValue()</code> unwraps <code>{ value }</code> from every metric agg type</li>
+        <li>Documents bypass this: <code>rows = hits.map({ ..._source, _id, _score? })</code></li>
+      </ul>
+    </section>
+
+    <section id="indexing">
+      <h2>6. Indexing</h2>
+      <p>SELECT source rows → transformer (per <code>model.search</code>: <code>searchable</code>, <code>embeddingInput</code>, <code>embeddingField</code>) → embed → bulk index. <code>created_by</code>/<code>tenant_id</code> travel into the doc for OS-side isolation. Currently <code>department</code> text + <code>embedding</code> vector into <code>purchase-requisitions</code> — the table has no title/description columns.</p>
+    </section>
+
+    <section id="embed">
+      <h2>7. Embeddings</h2>
+      <p>Ollama native (<code>/api/embed</code>) or OpenAI-compatible (<code>POST /embeddings</code>); 384-dim MiniLM here. Used at query time (semantic/hybrid) and index time — nowhere else. Missing provider → <code>ExecutionError</code> naming the fix.</p>
+    </section>
+
+    <section id="gotchas">
+      <h2>8. Gotchas</h2>
+      <ul>
+        <li>OS counts are <strong>native numbers</strong>; SQL returns numeric <strong>strings</strong></li>
+        <li><code>terms.size</code> reuses the row <code>limit</code> — bucket count and row limit conflated</li>
+        <li><code>trackTotalHits</code> unset → <code>total</code> may be approximate on big indices</li>
+        <li>Multi-axis grouping reads the first axis's buckets only (see issues doc)</li>
+        <li>Search-only requests belong on <code>/search</code>, never <code>/query</code></li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

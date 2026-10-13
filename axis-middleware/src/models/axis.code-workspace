@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../../axis"
+		},
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../axis-playground"
+		}
+	],
+	"settings": {}
+}

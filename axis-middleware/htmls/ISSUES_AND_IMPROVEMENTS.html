@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ISSUES_AND_IMPROVEMENTS — Flaws and Opinions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #000000; --bg-secondary: #0a0a0a; --bg-tertiary: #161616;
+      --text-primary: #f5f7fa; --text-secondary: #cbd5e1;
+      --accent-pink: #ec4899; --accent-pink-light: #f472b6;
+      --border-color: #262626; --code-bg: #0a0a0a; --code-border: #262626;
+      --sev-fix: #f87171; --sev-harden: #fbbf24; --sev-opinion: #60a5fa;
+    }
+    body { font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background-color: var(--bg-primary); color: var(--text-primary); line-height: 1.6; font-size: 16px; }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+    header { text-align: center; margin-bottom: 60px; padding-bottom: 40px; border-bottom: 1px solid var(--border-color); }
+    header h1 { font-size: 48px; font-weight: 700; margin-bottom: 12px; background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-pink-light) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    header p { font-size: 18px; color: var(--text-secondary); font-weight: 300; }
+    .toc { background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 32px; margin-bottom: 60px; }
+    .toc h2 { color: var(--accent-pink); margin-bottom: 20px; font-size: 20px; margin-top: 0; }
+    .toc ol { list-style: none; counter-reset: item; margin: 0; }
+    .toc li { counter-increment: item; margin-bottom: 12px; padding-left: 8px; }
+    .toc li:before { content: counter(item) ". "; color: var(--accent-pink); font-weight: 600; }
+    .toc a { color: var(--text-secondary); text-decoration: none; transition: color 0.3s ease; }
+    .toc a:hover { color: var(--accent-pink); }
+    h2 { font-size: 24px; font-weight: 700; margin: 48px 0 20px 0; color: var(--text-primary); scroll-margin-top: 80px; }
+    h2 .tag { font-size: 13px; vertical-align: middle; margin-right: 10px; }
+    p { margin-bottom: 16px; color: var(--text-secondary); line-height: 1.8; }
+    a { color: var(--accent-pink); text-decoration: none; transition: color 0.3s ease; }
+    a:hover { color: var(--accent-pink-light); text-decoration: underline; }
+    pre { background-color: var(--code-bg); border: 1px solid var(--code-border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 24px 0; font-size: 14px; line-height: 1.6; }
+    code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #d4d4d4; }
+    p code, li code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background-color: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+    ul, ol { margin-left: 24px; margin-bottom: 16px; }
+    li { margin-bottom: 12px; color: var(--text-secondary); line-height: 1.8; }
+    li strong { color: var(--text-primary); }
+    blockquote { border-left: 4px solid var(--accent-pink); background-color: rgba(236, 72, 153, 0.05); padding: 16px 20px; margin: 24px 0; border-radius: 4px; color: var(--text-secondary); }
+    blockquote strong { color: var(--text-primary); }
+    section { margin-bottom: 48px; }
+    .tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; }
+    .tag.fix { color: var(--sev-fix); border: 1px solid var(--sev-fix); }
+    .tag.harden { color: var(--sev-harden); border: 1px solid var(--sev-harden); }
+    .tag.opinion { color: var(--sev-opinion); border: 1px solid var(--sev-opinion); }
+    @media (max-width: 768px) { .container { padding: 24px 16px; } header h1 { font-size: 36px; } h2 { font-size: 20px; } pre { font-size: 12px; padding: 16px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Issues &amp; Improvements</h1>
+      <p>Verified flaws, fragilities, and design opinions — with file paths and fixes</p>
+    </header>
+
+    <div class="toc">
+      <h2>Table of Contents</h2>
+      <ol>
+        <li><a href="#i1">Search-only dies on the SQL path</a></li>
+        <li><a href="#i2">Multi-axis grouping drops axes</a></li>
+        <li><a href="#i3">terms.size reuses row limit</a></li>
+        <li><a href="#i4">No pipeline log</a></li>
+        <li><a href="#i5">Number-type split between paths</a></li>
+        <li><a href="#i6">hasAssignedBuyer unusable</a></li>
+        <li><a href="#i7">Stale-tgz workflow</a></li>
+        <li><a href="#i8">trackTotalHits / size defaults</a></li>
+        <li><a href="#i9">Planner unused by routes</a></li>
+        <li><a href="#i10">Security asymmetry</a></li>
+        <li><a href="#i11">Keep docs alive</a></li>
+      </ol>
+    </div>
+
+    <section id="i1">
+      <h2><span class="tag fix">fix</span> 1. Search-only requests die on the SQL path</h2>
+      <p><code>POST /query</code> with <code>{ search: {...} }</code> passes validation, then <code>compileQuery</code> (<code>axis/src/core/compiler/compiler.ts:37-41</code>) throws <code>CompilationError: Query must contain at least one axis or metric.</code> The user used the wrong endpoint — but the message never says that.</p>
+      <p><strong>Fix:</strong> detect <code>input.search !== undefined</code> in the <code>/query</code> handler → <code>400: search requests must use POST /search</code>. Explicit, keeps the contract clean.</p>
+    </section>
+
+    <section id="i2">
+      <h2><span class="tag fix">fix</span> 2. Multi-axis grouping silently drops axes</h2>
+      <p><code>buildDSL</code> emits a separate <code>&lt;name&gt;_terms</code> agg <strong>per axis</strong>, but <code>normalizeAggregationRows</code> reads only <code>axes[0]</code>'s buckets. <code>axes: ["department","status"]</code> computes both groupings cluster-side, then discards one client-side.</p>
+      <p><strong>Fix:</strong> nest terms aggs (true multi-level GROUP BY) or reject <code>axes.length &gt; 1</code> with metrics — silent data loss is the worst option.</p>
+    </section>
+
+    <section id="i3">
+      <h2><span class="tag fix">fix</span> 3. terms.size reuses the row limit</h2>
+      <p><code>terms: { field, size: query.limit }</code> conflates rows-to-return with buckets-to-compute. <code>limit: 3</code> silently truncates to 3 departments.</p>
+      <p><strong>Fix:</strong> separate <code>bucketLimit</code> (e.g. default 1000) from row <code>limit/offset</code> applied post-normalization.</p>
+    </section>
+
+    <section id="i4">
+      <h2><span class="tag harden">harden</span> 4. No pipeline log</h2>
+      <p>Causes are chained in <code>ExecutionError</code> but the middleware returns a bare 502. The only artifacts are <code>reference/indexed-docs.txt</code> (a snapshot) and e2e console dumps.</p>
+      <p><strong>Fix:</strong> JSON-lines log per request — body → AST → resolved → DSL sent → raw <code>took/total/aggregations</code> → rows → status/duration. Truncate vectors, cap rows, gitignore it (tenant/user data).</p>
+    </section>
+
+    <section id="i5">
+      <h2><span class="tag harden">harden</span> 5. Number-type split between paths</h2>
+      <p>OS returns native numbers (<code>{ newCount: 6 }</code>); PG returns numeric strings (<code>{ newCount: "6" }</code>). Consumers switching paths break.</p>
+      <p><strong>Fix:</strong> coerce PG numerics to numbers at the executor boundary (JSON-native), plus a cross-path contract test.</p>
+    </section>
+
+    <section id="i6">
+      <h2><span class="tag harden">harden</span> 6. hasAssignedBuyer / assignedCount unusable</h2>
+      <p>The axis references <code>upeg.requisition_item</code>, absent in <code>po</code> — queries fail at execution, not validation. Create the table, remove the axis/metric, or validate axis SQL against the live schema at startup.</p>
+    </section>
+
+    <section id="i7">
+      <h2><span class="tag harden">harden</span> 7. Stale-tgz workflow</h2>
+      <p>Every library change needs build → pack → reinstall; forgetting it yields phantom missing-export errors. Prefer npm workspaces so dev can't run stale code.</p>
+    </section>
+
+    <section id="i8">
+      <h2><span class="tag harden">harden</span> 8. trackTotalHits unset; size defaulted late</h2>
+      <p>Without <code>track_total_hits</code>, <code>total</code> may be approximate while <code>rowCount</code> reports it as exact. And <code>body.size</code> stays <code>undefined</code> until <code>searchDocuments</code> defaults it — default it in the compiler so the DSL is self-contained.</p>
+    </section>
+
+    <section id="i9">
+      <h2><span class="tag opinion">opinion</span> 9. Planner unused by routes</h2>
+      <p><code>DefaultQueryPlanner</code> encodes routing policy and <code>axis.plan()</code> exposes it, yet <code>app.ts</code> calls <code>query()/searchDocuments()</code> directly. Route through it or delete it — dead policy code rots.</p>
+    </section>
+
+    <section id="i10">
+      <h2><span class="tag opinion">opinion</span> 10. Security asymmetry worth a test</h2>
+      <p>SQL resolves context unconditionally when configured; OS builds term filters only when a context object is passed (<code>axis.ts:208-211</code>). Both fail closed today, but the branches encode the invariant differently. Lock with per-path tests: own rows visible, foreign tenant sees zero, no token → 401.</p>
+    </section>
+
+    <section id="i11">
+      <h2><span class="tag opinion">opinion</span> 11. Keep these docs alive</h2>
+      <p>The old README described a SQL-only system; <code>htmls/</code> held stale one-off pages. Update <code>README / WORKFLOW / OPENSEARCH</code> with every pipeline change. Suggested work order: #1 → #2 → #5 → #4 → #7.</p>
+    </section>
+  </div>
+</body>
+</html>

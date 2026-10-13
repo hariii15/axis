@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axis — Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #000000;
+      --bg-secondary: #0a0a0a;
+      --bg-tertiary: #161616;
+      --text-primary: #f5f7fa;
+      --text-secondary: #cbd5e1;
+      --accent-pink: #ec4899;
+      --accent-pink-light: #f472b6;
+      --border-color: #262626;
+      --code-bg: #0a0a0a;
+      --code-border: #262626;
+    }
+
+    body {
+      font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    header h1 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-pink-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      font-size: 18px;
+      color: var(--text-secondary);
+      font-weight: 300;
+    }
+
+    /* Table of Contents */
+    .toc {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 60px;
+    }
+
+    .toc h2 {
+      color: var(--accent-pink);
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    .toc ol {
+      list-style: none;
+      counter-reset: item;
+    }
+
+    .toc li {
+      counter-increment: item;
+      margin-bottom: 12px;
+      padding-left: 8px;
+    }
+
+    .toc li:before {
+      content: counter(item) ". ";
+      color: var(--accent-pink);
+      font-weight: 600;
+    }
+
+    .toc a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .toc a:hover {
+      color: var(--accent-pink);
+    }
+
+    /* Headings */
+    h1 {
+      font-size: 42px;
+      font-weight: 700;
+      margin: 60px 0 24px 0;
+      color: var(--accent-pink);
+      scroll-margin-top: 80px;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      margin: 48px 0 20px 0;
+      color: var(--accent-pink);
+      scroll-margin-top: 80px;
+    }
+
+    h3 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 36px 0 16px 0;
+      color: var(--text-primary);
+    }
+
+    h4 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 24px 0 12px 0;
+      color: var(--text-secondary);
+    }
+
+    /* Text blocks */
+    p {
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    p + p {
+      margin-top: 16px;
+    }
+
+    /* Links */
+    a {
+      color: var(--accent-pink);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    a:hover {
+      color: var(--accent-pink-light);
+      text-decoration: underline;
+    }
+
+    /* Code blocks */
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      margin: 24px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #d4d4d4;
+    }
+
+    pre code {
+      color: #d4d4d4;
+    }
+
+    pre code .tok-k { color: #c586c0; }  /* keyword: const, import, return */
+    pre code .tok-s { color: #ce9178; }  /* string */
+    pre code .tok-n { color: #b5cea8; }  /* number */
+    pre code .tok-c { color: #6a9955; font-style: italic; } /* comment */
+    pre code .tok-f { color: #dcdcaa; }  /* function / class name */
+    pre code .tok-p { color: #9cdcfe; }  /* property / variable */
+    pre code .tok-b { color: #569cd6; }  /* boolean / null */
+    pre code .tok-t { color: #4ec9b0; }  /* type */
+    pre code .tok-flag { color: #9cdcfe; } /* --flags, -X */
+    pre code .tok-cmd { color: #dcdcaa; font-weight: 600; } /* curl, npm */
+
+    /* Inline code */
+    p code, li code, td code, h3 code, h4 code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background-color: var(--bg-tertiary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    li strong {
+      color: var(--text-primary);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 32px 0;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    table th {
+      background-color: var(--bg-tertiary);
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--accent-pink);
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    table tr:last-child td {
+      border-bottom: none;
+    }
+
+    table tr:hover {
+      background-color: var(--bg-tertiary);
+    }
+
+    /* Blockquotes & Tips */
+    blockquote {
+      border-left: 4px solid var(--accent-pink);
+      background-color: rgba(236, 72, 153, 0.05);
+      padding: 16px 20px;
+      margin: 24px 0;
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    blockquote strong {
+      color: var(--text-primary);
+    }
+
+    /* Sections */
+    section {
+      margin-bottom: 48px;
+    }
+
+    /* Horizontal rule */
+    hr {
+      border: none;
+      height: 1px;
+      background-color: var(--border-color);
+      margin: 48px 0;
+    }
+
+    /* Syntax highlighting for bash/bash commands */
+    .bash-command {
+      background-color: var(--code-bg);
+      border-left: 3px solid var(--accent-pink);
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 4px;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #d4d4d4;
+      font-size: 14px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 24px 16px;
+      }
+
+      header h1 {
+        font-size: 36px;
+      }
+
+      h2 {
+        font-size: 24px;
+      }
+
+      h3 {
+        font-size: 18px;
+      }
+
+      table {
+        font-size: 14px;
+      }
+
+      table th, table td {
+        padding: 12px;
+      }
+
+      pre {
+        font-size: 12px;
+        padding: 16px;
+      }
+    }
+
+    /* Utility classes */
+    .section-divider {
+      border-top: 1px solid var(--border-color);
+      margin: 60px 0;
+      padding-top: 40px;
+    }
+
+    .highlight {
+      color: var(--accent-pink);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>Axis</h1>
+      <p>A lightweight analytics layer for your Postgres database</p>
+    </header>
+
+    <!-- Intro -->
+    <section>
+      <p>Instead of writing raw SQL on the frontend or building one-off REST endpoints for every dashboard, you:</p>
+      <ol>
+        <li><strong>Define a Model</strong> once (what table to read, what fields exist).</li>
+        <li><strong>Query it</strong> with a simple JSON object (what to group by, what to count).</li>
+      </ol>
+      <p>Axis takes care of generating safe, correct SQL for you.</p>
+      <p>Think of it like React, but for data:</p>
+      <ul>
+        <li><strong>React:</strong> you describe <em>what UI you want</em>, React renders the DOM.</li>
+        <li><strong>Axis:</strong> you describe <em>what data you want</em>, Axis fetches it from Postgres.</li>
+      </ul>
+      <p>You never write SQL when querying. You only pick <strong>axes</strong> (group by) and <strong>metrics</strong> (numbers).</p>
+    </section>
+
+    <!-- Table of Contents -->
+    <div class="toc">
+      <h2>Table of Contents</h2>
+      <ol>
+        <li><a href="#quick-start">Quick Start</a></li>
+        <li><a href="#core-concepts">Core Concepts</a></li>
+        <li><a href="#querying-data">Querying Data</a></li>
+        <li><a href="#filters">Filters</a></li>
+        <li><a href="#sorting-pagination">Sorting and Pagination</a></li>
+        <li><a href="#defining-model">Defining a Model</a></li>
+        <li><a href="#axes-detail">Axes in Detail</a></li>
+        <li><a href="#metrics-detail">Metrics in Detail</a></li>
+        <li><a href="#api-reference">API Reference</a></li>
+        <li><a href="#error-handling">Error Handling</a></li>
+        <li><a href="#full-example">Full Example</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <!-- Section 1: Quick Start -->
+    <section id="quick-start" class="section-divider">
+      <h2>1. Quick Start</h2>
+
+      <h3>1.1. Start the server</h3>
+      <pre><code class="bash"># 1. Set your database connection
+# .env
+DATABASE_URL=postgresql://postgres:password@localhost:5432/purchase
+PORT=3000
+
+# 2. Install and run
+npm install
+npm run dev</code></pre>
+      <p>Check it is running:</p>
+      <pre><code class="bash">curl http://localhost:3000/health
+# { "ok": true }</code></pre>
+
+      <h3>1.2. See what models are available</h3>
+      <p>A <strong>model</strong> is a named dataset you can query, e.g. <code>PurchaseRequisitions</code>.</p>
+      <pre><code class="bash">curl http://localhost:3000/models</code></pre>
+      <pre><code class="json">{
+  "data": [
+    {
+      "name": "PurchaseRequisitions",
+      "axes": ["id", "status", "businessUnit", "department", "createdAt", "hasAssignedBuyer"],
+      "metrics": ["newCount", "pendingCount", "assignedCount"],
+      "description": null
+    }
+  ]
+}</code></pre>
+      <p>This tells you everything you can ask for. You do not need to know table names or column names.</p>
+
+      <h3>1.3. Run your first query</h3>
+      <p>Count all purchase requisitions, grouped by department:</p>
+      <pre><code class="bash">curl -X POST http://localhost:3000/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "PurchaseRequisitions",
+    "axes": ["department"],
+    "metrics": ["newCount"]
+  }'</code></pre>
+      <p>Response:</p>
+      <pre><code class="json">{
+  "data": {
+    "rows": [
+      { "department": "Sales", "newCount": 42 },
+      { "department": "Engineering", "newCount": 18 }
+    ],
+    "rowCount": 2
+  },
+  "meta": {
+    "model": "PurchaseRequisitions"
+  }
+}</code></pre>
+      <p>That is the whole flow. Let's break down <em>why</em> it works.</p>
+    </section>
+
+    <!-- Section 2: Core Concepts -->
+    <section id="core-concepts" class="section-divider">
+      <h2>2. Core Concepts</h2>
+      <p>There are only three things you need to learn:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>What it is</th>
+            <th>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Model</strong></td>
+            <td>A named dataset you can query. One model = one business question area.</td>
+            <td><code>PurchaseRequisitions</code></td>
+          </tr>
+          <tr>
+            <td><strong>Axis</strong></td>
+            <td>A field you <strong>group by</strong> or <strong>see as a column</strong>. Answers <em>"split it by what?"</em></td>
+            <td><code>department</code>, <code>status</code>, <code>createdAt</code></td>
+          </tr>
+          <tr>
+            <td><strong>Metric</strong></td>
+            <td>A number that is <strong>calculated</strong> for you. Answers <em>"how many / how much?"</em></td>
+            <td><code>newCount</code>, <code>pendingCount</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>A query is always:</p>
+      <blockquote>
+        <strong>From this Model</strong>, show me these <strong>Axes</strong> with these <strong>Metrics</strong>, optionally <strong>filtered</strong>, <strong>sorted</strong>, and <strong>paginated</strong>.
+      </blockquote>
+
+      <pre><code class="javascript">// The shape of every query
+const query = {
+  model: "PurchaseRequisitions", // required: which dataset
+  axes: ["department"],          // optional: group by / show columns
+  metrics: ["newCount"],         // optional: numbers to calculate
+  filters: [],                   // optional: narrow rows down
+  orderBy: [],                   // optional: sort rows
+  limit: 100,                    // optional: page size
+  offset: 0                      // optional: page start
+};
+
+// You must include at least one of `axes` or `metrics`.</code></pre>
+
+      <p>In JavaScript:</p>
+      <pre><code class="javascript">const res = await fetch("http://localhost:3000/query", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    model: "PurchaseRequisitions",
+    axes: ["department"],
+    metrics: ["newCount"],
+  }),
+});
+
+const { data } = await res.json();
+console.log(data.rows);
+// [{ department: "Sales", newCount: 42 }, ...]</code></pre>
+    </section>
+
+    <!-- Section 3: Querying Data -->
+    <section id="querying-data" class="section-divider">
+      <h2>3. Querying Data</h2>
+      <p>There are two equivalent ways to query. Use whichever is cleaner for you.</p>
+
+      <h3>Option A: <code>POST /query</code> (model in the body)</h3>
+      <pre><code class="json">{
+  "model": "PurchaseRequisitions",
+  "axes": ["department"],
+  "metrics": ["newCount"]
+}</code></pre>
+
+      <h3>Option B: <code>POST /query/:model</code> (model in the URL)</h3>
+      <pre><code class="bash">curl -X POST http://localhost:3000/query/PurchaseRequisitions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "axes": ["department"],
+    "metrics": ["newCount"]
+  }'</code></pre>
+
+      <p>Both return the same shape:</p>
+      <pre><code class="json">{
+  "data": {
+    "rows": [{ "department": "Sales", "newCount": 42 }],
+    "rowCount": 1
+  },
+  "meta": {
+    "model": "PurchaseRequisitions",
+    "limit": 10,
+    "offset": 0
+  }
+}</code></pre>
+
+      <ul>
+        <li><code>data.rows</code> — the actual results. Each key is an axis or metric name you asked for.</li>
+        <li><code>data.rowCount</code> — how many rows were returned.</li>
+        <li><code>meta</code> — echoes back <code>model</code>, <code>limit</code>, and <code>offset</code> (only if you sent them).</li>
+      </ul>
+
+      <h3>Three common query patterns</h3>
+
+      <h4>1. Just numbers (no grouping)</h4>
+      <p>Get a single total:</p>
+      <pre><code class="json">{
+  "model": "PurchaseRequisitions",
+  "metrics": ["newCount", "pendingCount", "assignedCount"]
+}</code></pre>
+      <pre><code class="json">{
+  "data": {
+    "rows": [{ "newCount": 120, "pendingCount": 30, "assignedCount": 85 }],
+    "rowCount": 1
+  }
+}</code></pre>
+
+      <h4>2. Just breakdown (no numbers)</h4>
+      <p>List all departments:</p>
+      <pre><code class="json">{
+  "model": "PurchaseRequisitions",
+  "axes": ["department"]
+}</code></pre>
+
+      <h4>3. Grouped numbers (most common)</h4>
+      <p>Count per department:</p>
+      <pre><code class="json">{
+  "model": "PurchaseRequisitions",
+  "axes": ["department"],
+  "metrics": ["newCount", "pendingCount"]
+}</code></pre>
+
+      <blockquote>
+        <strong>Rule:</strong> a query must contain at least one <code>axes</code> entry or one <code>metrics</code> entry. An empty query is rejected.
+      </blockquote>
+    </section>
+
+    <!-- Section 4: Filters -->
+    <section id="filters" class="section-divider">
+      <h2>4. Filters</h2>
+      <p>Filters narrow down <em>which rows</em> are counted. Each filter has a <code>field</code>, an <code>operator</code>, and a <code>value</code> (except <code>isNull</code> / <code>isNotNull</code>, which take no value).</p>
+
+      <pre><code class="json">{
+  "model": "PurchaseRequisitions",
+  "metrics": ["newCount"],
+  "filters": [
+    { "field": "status", "operator": "equals", "value": 1 }
+  ]
+}</code></pre>
+
+      <p>You can combine multiple filters (they are AND-ed together):</p>
+      <pre><code class="json">{
+  "model": "PurchaseRequisitions",
+  "axes": ["department"],
+  "metrics": ["newCount"],
+  "filters": [
+    { "field": "status", "operator": "equals", "value": 1 },
+    { "field": "businessUnit", "operator": "equals", "value": "Retail" }
+  ]
+}</code></pre>
+
+      <h3>All operators</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Operator</th>
+            <th>Meaning</th>
+            <th>Example value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>equals</code></td>
+            <td>Exactly matches</td>
+            <td><code>{ "field": "status", "operator": "equals", "value": 1 }</code></td>
+          </tr>
+          <tr>
+            <td><code>notEquals</code></td>
+            <td>Does not match</td>
+            <td><code>{ "field": "status", "operator": "notEquals", "value": 2 }</code></td>
+          </tr>
+          <tr>
+            <td><code>greaterThan</code></td>
+            <td><code>&gt;</code></td>
+            <td><code>{ "field": "status", "operator": "greaterThan", "value": 1 }</code></td>
+          </tr>
+          <tr>
+            <td><code>greaterThanOrEqual</code></td>
+            <td><code>&gt;=</code></td>
+            <td><code>{ "field": "status", "operator": "greaterThanOrEqual", "value": 1 }</code></td>
+          </tr>
+          <tr>
+            <td><code>lessThan</code></td>
+            <td><code>&lt;</code></td>
+            <td><code>{ "field": "status", "operator": "lessThan", "value": 5 }</code></td>
+          </tr>
+          <tr>
+            <td><code>lessThanOrEqual</code></td>
+            <td><code>&lt;=</code></td>
+            <td><code>{ "field": "status", "operator": "lessThanOrEqual", "value": 5 }</code></td>
+          </tr>
+          <tr>
+            <td><code>in</code></td>
+            <td>Value is one of a list</td>
+            <td><code>{ "field": "status", "operator": "in", "value": [1, 2, 3] }</code></td>
+          </tr>
+          <tr>
+            <td><code>notIn</code></td>
+            <td>Value is none of a list</td>
+            <td><code>{ "field": "status", "operator": "notIn", "value": [0, 9] }</code></td>
+          </tr>
+          <tr>
+            <td><code>contains</code></td>
+            <td>Text contains substring</td>
+            <td><code>{ "field": "department", "operator": "contains", "value": "sales" }</code></td>
+          </tr>
+          <tr>
+            <td><code>startsWith</code></td>
+            <td>Text starts with</td>
+            <td><code>{ "field": "department", "operator": "startsWith", "value": "Eng" }</code></td>
+          </tr>
+          <tr>
+            <td><code>endsWith</code></td>
+            <td>Text ends with</td>
+            <td><code>{ "field": "department", "operator": "endsWith", "value": "ing" }</code></td>
+          </tr>
+          <tr>
+            <td><code>isNull</code></td>
+            <td>Field is empty (no <code>value</code>)</td>
+            <td><code>{ "field": "department", "operator": "isNull" }</code></td>
+          </tr>
+          <tr>
+            <td><code>isNotNull</code></td>
+            <td>Field is not empty (no <code>value</code>)</td>
+            <td><code>{ "field": "department", "operator": "isNotNull" }</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <blockquote>
+        <strong>Tip:</strong> <code>field</code> refers to an <strong>axis name</strong> (like <code>department</code>, <code>status</code>), not a raw database column. If you are unsure, check <code>GET /models</code>.
+      </blockquote>
+    </section>
+
+    <!-- Section 5: Sorting and Pagination -->
+    <section id="sorting-pagination" class="section-divider">
+      <h2>5. Sorting and Pagination</h2>
+
+      <h3>Sorting with <code>orderBy</code></h3>
+      <p>Sort by any axis or metric you selected:</p>
+      <pre><code class="json">{
+  "model": "PurchaseRequisitions",
+  "axes": ["department"],
+  "metrics": ["newCount"],
+  "orderBy": [{ "field": "newCount", "direction": "desc" }]
+}</code></pre>
+
+      <ul>
+        <li><code>direction</code> is either <code>"asc"</code> (small → large, A → Z) or <code>"desc"</code> (large → small, Z → A).</li>
+        <li>You can sort by multiple fields — the first entry has the highest priority:</li>
+      </ul>
+
+      <pre><code class="json">"orderBy": [
+  { "field": "department", "direction": "asc" },
+  { "field": "newCount", "direction": "desc" }
+]</code></pre>
+
+      <h3>Pagination with <code>limit</code> and <code>offset</code></h3>
+      <pre><code class="json">{
+  "model": "PurchaseRequisitions",
+  "axes": ["department"],
+  "metrics": ["newCount"],
+  "limit": 10,
+  "offset": 20
+}</code></pre>
+
+      <ul>
+        <li><code>limit</code> — max rows to return. Must be a positive whole number (e.g. <code>10</code>).</li>
+        <li><code>offset</code> — how many rows to skip. Must be <code>0</code> or higher. Use it for "page 2", "page 3", etc.</li>
+      </ul>
+
+      <pre><code class="javascript">// Page 1
+{ model: "PurchaseRequisitions", axes: ["department"], limit: 10, offset: 0 }
+// Page 2
+{ model: "PurchaseRequisitions", axes: ["department"], limit: 10, offset: 10 }
+// Page 3
+{ model: "PurchaseRequisitions", axes: ["department"], limit: 10, offset: 20 }</code></pre>
+    </section>
+
+    <!-- Section 6: Defining a Model -->
+    <section id="defining-model" class="section-divider">
+      <h2>6. Defining a Model</h2>
+
+
+      <p>A model is defined once in TypeScript with <code>defineModel</code>. It maps friendly names (<code>department</code>) to database columns (<code>department_name</code>).</p>
+
+      <pre><code class="typescript">import { defineModel } from "axis";
+
+export const PurchaseRequisitions = defineModel({
+  name: "PurchaseRequisitions",
+
+  source: {
+    type: "table",
+    table: "upeg.requisition_deails",
+  },
+
+  axes: {
+    id: { sql: "requisition_id", type: "string", primaryKey: true },
+    status: { sql: "status", type: "number" },
+    businessUnit: { sql: "business_unit", type: "string" },
+    department: { sql: "department_name", type: "string" },
+    createdAt: { sql: "created_date", type: "time" },
+  },
+
+  metrics: {
+    newCount: {
+      type: "count",
+      description: "Requisitions created in the selected period.",
+    },
+    pendingCount: {
+      type: "count",
+      sql: "requisition_id",
+      filters: [{ field: "status", operator: "equals", value: 1 }],
+    },
+  },
+});</code></pre>
+
+      <p>Then register it so the server can serve it:</p>
+      <pre><code class="typescript">import { Axis, ModelRegistry } from "axis";
+import { PurchaseRequisitions } from "./models/purchase-requisitions.js";
+
+const registry = new ModelRegistry();
+registry.register(PurchaseRequisitions);
+
+const axis = new Axis({
+  database: { url: process.env.DATABASE_URL },
+  registry,
+});</code></pre>
+
+      <p>That's it. The model now appears in <code>GET /models</code> and can be queried via <code>POST /query</code>.</p>
+
+      <h3>The three parts of a model</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Part</th>
+            <th>Purpose</th>
+            <th>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>source</code></td>
+            <td>Which table (or SQL / function) the data comes from.</td>
+            <td><code>{ type: "table", table: "upeg.requisition_deails" }</code></td>
+          </tr>
+          <tr>
+            <td><code>axes</code></td>
+            <td>The fields users can see, group by, filter, and sort.</td>
+            <td><code>department: { sql: "department_name", type: "string" }</code></td>
+          </tr>
+          <tr>
+            <td><code>metrics</code></td>
+            <td>The pre-built calculations users can request.</td>
+            <td><code>pendingCount: { type: "count", ... }</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Section 7: Axes in Detail -->
+    <section id="axes-detail" class="section-divider">
+      <h2>7. Axes in Detail</h2>
+      <p>An axis is a <strong>named, readable field</strong>. Users pick axes when they want to <em>see</em> or <em>group by</em> something.</p>
+
+      <pre><code class="typescript">axes: {
+  department: { sql: "department_name", type: "string" },
+  status: { sql: "status", type: "number" },
+  createdAt: { sql: "created_date", type: "time" },
+  hasAssignedBuyer: { sql: "...", type: "boolean" },
+}</code></pre>
+
+      <p>Each axis has:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Required</th>
+            <th>What it means</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sql</code></td>
+            <td>Yes</td>
+            <td>The database column or expression behind this name. Users never see this.</td>
+          </tr>
+          <tr>
+            <td><code>type</code></td>
+            <td>Yes</td>
+            <td>One of <code>"string"</code>, <code>"number"</code>, <code>"boolean"</code>, <code>"time"</code>. Tells Axis how to handle the value.</td>
+          </tr>
+          <tr>
+            <td><code>primaryKey</code></td>
+            <td>No</td>
+            <td>Mark the unique ID axis (e.g. <code>id</code>). Helps Axis identify rows.</td>
+          </tr>
+          <tr>
+            <td><code>description</code></td>
+            <td>No</td>
+            <td>Human-readable hint shown in docs / tooling.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Axis types:</h3>
+      <ul>
+        <li><code>string</code> — text (<code>department</code>, <code>businessUnit</code>)</li>
+        <li><code>number</code> — numeric (<code>status</code>)</li>
+        <li><code>boolean</code> — true/false (<code>hasAssignedBuyer</code>)</li>
+        <li><code>time</code> — dates and timestamps (<code>createdAt</code>)</li>
+      </ul>
+
+      <p><strong>When to add an axis:</strong> whenever the frontend needs to display, group, filter, or sort by that field. If it should never be shown to users, don't expose it as an axis.</p>
+    </section>
+
+    <!-- Section 8: Metrics in Detail -->
+    <section id="metrics-detail" class="section-divider">
+      <h2>8. Metrics in Detail</h2>
+      <p>A metric is a <strong>pre-built number</strong>. Users pick metrics when they want to know <em>how many</em> or <em>how much</em> — without writing aggregation logic themselves.</p>
+
+      <pre><code class="typescript">metrics: {
+  // Simple row count — no `sql` needed
+  newCount: {
+    type: "count",
+    description: "Requisitions created in the selected period.",
+  },
+
+  // Count with a built-in filter — always counts only pending rows
+  pendingCount: {
+    type: "count",
+    sql: "requisition_id",
+    filters: [{ field: "status", operator: "equals", value: 1 }],
+  },
+}</code></pre>
+
+      <p>Each metric has:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Required</th>
+            <th>What it means</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>type</code></td>
+            <td>Yes</td>
+            <td>How to calculate it: <code>"count"</code>, <code>"countDistinct"</code>, <code>"sum"</code>, <code>"avg"</code>, <code>"min"</code>, <code>"max"</code>.</td>
+          </tr>
+          <tr>
+            <td><code>sql</code></td>
+            <td>Sometimes</td>
+            <td>Which column to calculate on. Optional for plain <code>count</code> (counts rows); required for <code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, <code>countDistinct</code>.</td>
+          </tr>
+          <tr>
+            <td><code>filters</code></td>
+            <td>No</td>
+            <td>Conditions baked into the metric. Every time someone asks for <code>pendingCount</code>, the <code>status = 1</code> filter is applied automatically.</td>
+          </tr>
+          <tr>
+            <td><code>description</code></td>
+            <td>No</td>
+            <td>Human-readable hint for API consumers.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Metric types:</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>What it calculates</th>
+            <th>Needs <code>sql</code>?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>count</code></td>
+            <td>Number of rows (or non-empty values)</td>
+            <td>No — omit to count rows</td>
+          </tr>
+          <tr>
+            <td><code>countDistinct</code></td>
+            <td>Number of unique values</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <td><code>sum</code></td>
+            <td>Total of a numeric column</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <td><code>avg</code></td>
+            <td>Average of a numeric column</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <td><code>min</code></td>
+            <td>Smallest value</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <td><code>max</code></td>
+            <td>Largest value</td>
+            <td>Yes</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Example — all metric types:</h3>
+      <pre><code class="typescript">metrics: {
+  newCount: { type: "count" },
+  uniqueDepartments: { type: "countDistinct", sql: "department_name" },
+  totalAmount: { type: "sum", sql: "amount" },
+  averageAmount: { type: "avg", sql: "amount" },
+  smallestAmount: { type: "min", sql: "amount" },
+  largestAmount: { type: "max", sql: "amount" },
+}</code></pre>
+
+      <blockquote>
+        <strong>Guideline:</strong> put business logic in metrics, not in frontend code. If "pending" always means <code>status = 1</code>, encode that in a <code>pendingCount</code> metric so every dashboard counts it the same way.
+      </blockquote>
+    </section>
+
+    <!-- Section 9: API Reference -->
+    <section id="api-reference" class="section-divider">
+      <h2>9. API Reference</h2>
+
+      <h3><code>GET /health</code></h3>
+      <p>Check the server is up. No input needed.</p>
+      <pre><code class="bash">curl http://localhost:3000/health
+# { "ok": true }</code></pre>
+
+      <h3><code>GET /models</code></h3>
+      <p>List every available model with its axes and metrics.</p>
+      <pre><code class="bash">curl http://localhost:3000/models</code></pre>
+      <pre><code class="json">{
+  "data": [
+    {
+      "name": "PurchaseRequisitions",
+      "axes": ["id", "status", "businessUnit", "department"],
+      "metrics": ["newCount", "pendingCount"],
+      "description": null
+    }
+  ]
+}</code></pre>
+
+      <h3><code>POST /query</code> and <code>POST /query/:model</code></h3>
+      <p>Run a query. Request body:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Rules</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>model</code></td>
+            <td><code>string</code></td>
+            <td>Yes (or via URL <code>:model</code>)</td>
+            <td>Must match a name from <code>GET /models</code>.</td>
+          </tr>
+          <tr>
+            <td><code>axes</code></td>
+            <td><code>string[]</code></td>
+            <td>At least one of <code>axes</code> / <code>metrics</code></td>
+            <td>Each must be a valid axis name. No empty strings.</td>
+          </tr>
+          <tr>
+            <td><code>metrics</code></td>
+            <td><code>string[]</code></td>
+            <td>At least one of <code>axes</code> / <code>metrics</code></td>
+            <td>Each must be a valid metric name. No empty strings.</td>
+          </tr>
+          <tr>
+            <td><code>filters</code></td>
+            <td><code>Filter[]</code></td>
+            <td>No</td>
+            <td>Each needs <code>field</code>, valid <code>operator</code>, and a matching <code>value</code> (except <code>isNull</code> / <code>isNotNull</code>).</td>
+          </tr>
+          <tr>
+            <td><code>orderBy</code></td>
+            <td><code>{ field, direction }[]</code></td>
+            <td>No</td>
+            <td><code>field</code> must be a selected axis/metric; <code>direction</code> is <code>"asc"</code> or <code>"desc"</code>.</td>
+          </tr>
+          <tr>
+            <td><code>limit</code></td>
+            <td><code>number</code></td>
+            <td>No</td>
+            <td>Positive whole number (<code>1</code>, <code>10</code>, <code>100</code>).</td>
+          </tr>
+          <tr>
+            <td><code>offset</code></td>
+            <td><code>number</code></td>
+            <td>No</td>
+            <td>Zero or higher whole number (<code>0</code>, <code>10</code>).</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>Success response (<code>200</code>):</p>
+      <pre><code class="json">{
+  "data": { "rows": [...], "rowCount": 2 },
+  "meta": { "model": "PurchaseRequisitions", "limit": 10, "offset": 0 }
+}</code></pre>
+    </section>
+
+    <!-- Section 10: Error Handling -->
+    <section id="error-handling" class="section-divider">
+      <h2>10. Error Handling</h2>
+      <p>All errors use the same envelope:</p>
+      <pre><code class="json">{
+  "error": {
+    "message": "Human-readable reason",
+    "code": "ValidationError",
+    "issues": [...]
+  }
+}</code></pre>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Code</th>
+            <th>What it means</th>
+            <th>What to do</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>400</code></td>
+            <td><code>ValidationError</code></td>
+            <td>The query shape is invalid (missing model, empty axes/metrics, bad limit, bad operator, etc.). <code>issues</code> lists each problem.</td>
+            <td>Fix the request body.</td>
+          </tr>
+          <tr>
+            <td><code>400</code></td>
+            <td><code>InvalidJson</code></td>
+            <td>The request body is not valid JSON.</td>
+            <td>Check for trailing commas / broken quotes.</td>
+          </tr>
+          <tr>
+            <td><code>422</code></td>
+            <td><code>ResolutionError</code> / <code>CompilationError</code></td>
+            <td>The shape is valid, but a name is wrong (unknown model, axis, or metric).</td>
+            <td>Call <code>GET /models</code> and use exact names.</td>
+          </tr>
+          <tr>
+            <td><code>404</code></td>
+            <td><code>NotFound</code></td>
+            <td>Wrong URL or wrong HTTP method (e.g. <code>GET /query</code>).</td>
+            <td>Use <code>POST /query</code> or <code>POST /query/:model</code>.</td>
+          </tr>
+          <tr>
+            <td><code>502</code></td>
+            <td><code>ExecutionError</code> / <code>DatabaseError</code></td>
+            <td>The query was fine, but the database failed.</td>
+            <td>Retry; if it persists, check the database.</td>
+          </tr>
+          <tr>
+            <td><code>500</code></td>
+            <td><code>InternalError</code></td>
+            <td>Unexpected server error.</td>
+            <td>Check server logs.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>Example — unknown metric:</p>
+      <pre><code class="bash">curl -X POST http://localhost:3000/query \
+  -H "Content-Type: application/json" \
+  -d '{ "model": "PurchaseRequisitions", "metrics": ["nope"] }'
+# Status: 422
+# { "error": { "message": "... does not exist ...", "code": "ResolutionError" } }</code></pre>
+
+      <p>Frontend pattern:</p>
+      <pre><code class="javascript">const res = await fetch("http://localhost:3000/query", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(query),
+});
+
+const body = await res.json();
+
+if (!res.ok) {
+  // body.error.message is safe to show or log
+  // body.error.issues (only on 400) lists field-level problems
+  throw new Error(body.error.message);
+}
+
+return body.data.rows;</code></pre>
+    </section>
+
+    <!-- Section 11: Full Example -->
+    <section id="full-example" class="section-divider">
+      <h2>11. Full Example</h2>
+      <p><strong>Dashboard:</strong> "Pending requisitions by department, top 5."</p>
+
+      <pre><code class="javascript">async function getPendingByDepartment() {
+  const res = await fetch("http://localhost:3000/query/PurchaseRequisitions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      axes: ["department"],
+      metrics: ["pendingCount", "newCount"],
+      filters: [
+        { field: "businessUnit", operator: "equals", value: "Retail" },
+      ],
+      orderBy: [{ field: "pendingCount", direction: "desc" }],
+      limit: 5,
+      offset: 0,
+    }),
+  });
+
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error.message);
+
+  // body.data.rows =
+  // [
+  //   { department: "Sales", pendingCount: 12, newCount: 40 },
+  //   { department: "Support", pendingCount: 9, newCount: 25 },
+  //   ...
+  // ]
+
+  return body.data.rows;
+}</code></pre>
+
+      <p>Equivalent <code>curl</code>:</p>
+      <pre><code class="bash">curl -X POST http://localhost:3000/query/PurchaseRequisitions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "axes": ["department"],
+    "metrics": ["pendingCount", "newCount"],
+    "filters": [
+      { "field": "businessUnit", "operator": "equals", "value": "Retail" }
+    ],
+    "orderBy": [{ "field": "pendingCount", "direction": "desc" }],
+    "limit": 5,
+    "offset": 0
+  }'</code></pre>
+    </section>
+
+    <!-- Section 12: FAQ -->
+    <section id="faq" class="section-divider">
+      <h2>12. FAQ</h2>
+      <h3>What is the difference between an axis and a metric?</h3>
+      <p>An axis is something you group by (<code>department</code>). A metric is something calculated (<code>newCount</code>). If it answers "split by what?", it's an axis. If it answers "how many?", it's a metric.</p>
+
+      <h3>Where do I find valid axis / metric names?</h3>
+      <p>Call <code>GET /models</code>. Names are case-sensitive — <code>department</code> and <code>Department</code> are different.</p>
+
+      <h3>Why did my query fail with 400?</h3>
+      <p>The request shape is wrong. Read <code>error.issues</code> — it tells you exactly which field failed (e.g. <code>limit</code> must be positive, <code>operator</code> must be <code>equals</code>, not <code>equal</code>).</p>
+
+      <h3>Why did my query fail with 422?</h3>
+      <p>The shape is fine, but a name doesn't exist. You asked for a model, axis, or metric that isn't defined. Compare against <code>GET /models</code>.</p>
+
+      <h3>Can I filter on anything?</h3>
+      <p>Filter <code>field</code> should be an axis name from the model. Operators like <code>contains</code> / <code>startsWith</code> are meant for text axes; comparison operators (<code>greaterThan</code>, etc.) for numbers and dates.</p>
+
+      <h3>How do I add a new dataset?</h3>
+      <p>Define a model with <code>defineModel</code>, register it in the server, restart. It will show up in <code>GET /models</code> automatically — no frontend changes needed for discovery.</p>
+    </section>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding-top: 40px; border-top: 1px solid var(--border-color); margin-top: 60px; color: var(--text-secondary);">
+      <p><small>This documentation is structured for conversion to any format — headings, tables, and code blocks map directly to styled sections.</small></p>
+    </footer>
+  </div>
+
+  <script>
+    // Lightweight editor-style syntax highlighting (no dependencies).
+    // Colors mimic VS Code Dark+: keywords purple, strings orange,
+    // numbers green, comments grey-green, functions yellow, vars blue.
+    (function () {
+      function esc(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+      function span(cls, s) {
+        return '<span class="' + cls + '">' + esc(s) + "</span>";
+      }
+
+      var JS_KEYWORDS = /^(const|let|var|import|from|export|return|await|async|function|new|if|throw|typeof|in|of)$/;
+      var JS_TYPES = /^(string|number|boolean|null|true|false)$/;
+
+      function highlightJS(src) {
+        var re = /(\/\/[^\n]*|#[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(\d+(?:\.\d+)?)\b|\b([A-Za-z_$][\w$]*)\b|(\s+|.)/g;
+        var out = "", m;
+        while ((m = re.exec(src))) {
+          var comment = m[1], str = m[2], num = m[3], word = m[4], other = m[5];
+          if (comment !== undefined) out += span("tok-c", comment);
+          else if (str !== undefined) out += span("tok-s", str);
+          else if (num !== undefined) out += span("tok-n", num);
+          else if (word !== undefined) {
+            if (JS_KEYWORDS.test(word)) out += span("tok-k", word);
+            else if (/^(true|false|null|undefined)$/.test(word)) out += span("tok-b", word);
+            else {
+              var rest = src.slice(re.lastIndex);
+              if (/^\s*\(/.test(rest)) out += span("tok-f", word);
+              else if (/^\s*:/.test(rest)) out += span("tok-p", word);
+              else out += span("tok-p", word);
+            }
+          }
+          else out += esc(other);
+        }
+        return out;
+      }
+
+      function highlightJSON(src) {
+        var re = /(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\b\d+(?:\.\d+)?\b)|(\s+|.)/g;
+        var out = "", m;
+        while ((m = re.exec(src))) {
+          var comment = m[1], str = m[2], colon = m[3], bool = m[4], num = m[5], other = m[6];
+          if (comment !== undefined) out += span("tok-c", comment);
+          else if (str !== undefined) {
+            out += colon !== undefined
+              ? span("tok-p", str) + esc(colon)
+              : span("tok-s", str);
+          }
+          else if (bool !== undefined) out += span("tok-b", bool);
+          else if (num !== undefined) out += span("tok-n", num);
+          else out += esc(other);
+        }
+        return out;
+      }
+
+      function highlightBash(src) {
+        var lines = src.split("\n"), html = [];
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (/^\s*(#.*)?$/.test(line)) {
+            html.push(line.trim().startsWith("#") ? span("tok-c", line) : esc(line));
+            continue;
+          }
+          var re = /(#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(--[A-Za-z][\w-]*|-[A-Za-z]+)|\b(\d+)\b|\b(curl|npm|node|npx|fetch)\b|(\s+|\S+)/g;
+          var out = "", m;
+          while ((m = re.exec(line))) {
+            if (m[1] !== undefined) out += span("tok-c", m[1]);
+            else if (m[2] !== undefined) out += span("tok-s", m[2]);
+            else if (m[3] !== undefined) out += span("tok-flag", m[3]);
+            else if (m[4] !== undefined) out += span("tok-n", m[4]);
+            else if (m[5] !== undefined) out += span("tok-cmd", m[5]);
+            else out += esc(m[6]);
+          }
+          html.push(out);
+        }
+        return html.join("\n");
+      }
+
+      function highlightTS(src) {
+        // TypeScript = JS highlighting + type names in teal.
+        var html = highlightJS(src);
+        return html.replace(
+          /<span class="tok-p">([A-Z][A-Za-z0-9_]*)<\/span>/g,
+          '<span class="tok-t">$1</span>'
+        );
+      }
+
+      document.querySelectorAll("pre code").forEach(function (el) {
+        var lang = (el.className || "").toLowerCase();
+        var src = el.textContent;
+        if (lang.indexOf("typescript") >= 0 || lang.indexOf(" ts") >= 0) el.innerHTML = highlightTS(src);
+        else if (lang.indexOf("javascript") >= 0 || lang.indexOf(" js") >= 0) el.innerHTML = highlightJS(src);
+        else if (lang.indexOf("json") >= 0) el.innerHTML = highlightJSON(src);
+        else el.innerHTML = highlightBash(src); // bash / curl blocks
+      });
+    })();
+  </script>
+</body>
+</html>

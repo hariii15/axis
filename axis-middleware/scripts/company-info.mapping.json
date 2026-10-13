@@ -1,0 +1,21 @@
+{
+  "comment": "Canonical OpenSearch mapping for the companyinfo index (Architecture A2). Same conventions as companies.mapping.json: keyword id, text+keyword strings, knn_vector 384. Recreate with: DELETE the index, then PUT this body.",
+  "settings": {
+    "index.knn": true
+  },
+  "mappings": {
+    "properties": {
+      "id": { "type": "keyword" },
+      "companyName": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "pan": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "gst": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "cin": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "msme": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "msmeType": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "msmeClassification": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "tenant_id": { "type": "keyword" },
+      "searchable_text": { "type": "text" },
+      "embedding": { "type": "knn_vector", "dimension": 384 }
+    }
+  }
+}

@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axis — Cache Implementation Document</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #000000;
+      --bg-secondary: #0a0a0a;
+      --bg-tertiary: #161616;
+      --text-primary: #f5f7fa;
+      --text-secondary: #cbd5e1;
+      --accent-pink: #ec4899;
+      --accent-pink-light: #f472b6;
+      --border-color: #262626;
+      --code-bg: #0a0a0a;
+      --code-border: #262626;
+    }
+
+    body {
+      font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    header h1 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-pink-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      font-size: 18px;
+      color: var(--text-secondary);
+      font-weight: 300;
+    }
+
+    /* Table of Contents */
+    .toc {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 60px;
+    }
+
+    .toc h2 {
+      color: var(--accent-pink);
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    .toc ol {
+      list-style: none;
+      counter-reset: item;
+    }
+
+    .toc li {
+      counter-increment: item;
+      margin-bottom: 12px;
+      padding-left: 8px;
+    }
+
+    .toc li:before {
+      content: counter(item) ". ";
+      color: var(--accent-pink);
+      font-weight: 600;
+    }
+
+    .toc a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .toc a:hover {
+      color: var(--accent-pink);
+    }
+
+    /* Headings */
+    h1 {
+      font-size: 42px;
+      font-weight: 700;
+      margin: 60px 0 24px 0;
+      color: var(--accent-pink);
+      scroll-margin-top: 80px;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      margin: 48px 0 20px 0;
+      color: var(--accent-pink);
+      scroll-margin-top: 80px;
+    }
+
+    h3 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 36px 0 16px 0;
+      color: var(--text-primary);
+    }
+
+    h4 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 24px 0 12px 0;
+      color: var(--text-secondary);
+    }
+
+    /* Text blocks */
+    p {
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    p + p {
+      margin-top: 16px;
+    }
+
+    /* Links */
+    a {
+      color: var(--accent-pink);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    a:hover {
+      color: var(--accent-pink-light);
+      text-decoration: underline;
+    }
+
+    /* Code blocks */
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      margin: 24px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #d4d4d4;
+    }
+
+    pre code {
+      color: #d4d4d4;
+    }
+
+    pre code .tok-k { color: #c586c0; }  /* keyword: const, import, return */
+    pre code .tok-s { color: #ce9178; }  /* string */
+    pre code .tok-n { color: #b5cea8; }  /* number */
+    pre code .tok-c { color: #6a9955; font-style: italic; } /* comment */
+    pre code .tok-f { color: #dcdcaa; }  /* function / class name */
+    pre code .tok-p { color: #9cdcfe; }  /* property / variable */
+    pre code .tok-b { color: #569cd6; }  /* boolean / null */
+    pre code .tok-t { color: #4ec9b0; }  /* type */
+    pre code .tok-flag { color: #9cdcfe; } /* --flags, -X */
+    pre code .tok-cmd { color: #dcdcaa; font-weight: 600; } /* curl, npm */
+
+    /* Inline code */
+    p code, li code, td code, h3 code, h4 code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background-color: var(--bg-tertiary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    li strong {
+      color: var(--text-primary);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 32px 0;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    table th {
+      background-color: var(--bg-tertiary);
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--accent-pink);
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    table tr:last-child td {
+      border-bottom: none;
+    }
+
+    table tr:hover {
+      background-color: var(--bg-tertiary);
+    }
+
+    /* Blockquotes & Tips */
+    blockquote {
+      border-left: 4px solid var(--accent-pink);
+      background-color: rgba(236, 72, 153, 0.05);
+      padding: 16px 20px;
+      margin: 24px 0;
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    blockquote strong {
+      color: var(--text-primary);
+    }
+
+    /* Sections */
+    section {
+      margin-bottom: 48px;
+    }
+
+    /* Horizontal rule */
+    hr {
+      border: none;
+      height: 1px;
+      background-color: var(--border-color);
+      margin: 48px 0;
+    }
+
+    /* Syntax highlighting for bash/bash commands */
+    .bash-command {
+      background-color: var(--code-bg);
+      border-left: 3px solid var(--accent-pink);
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 4px;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #d4d4d4;
+      font-size: 14px;
+    }
+
+    /* Flow diagram blocks */
+    .flow {
+      border: 1px solid var(--code-border);
+      border-left: 3px solid var(--accent-pink);
+      border-radius: 8px;
+      background-color: var(--code-bg);
+      padding: 20px 24px;
+      margin: 24px 0;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 14px;
+      line-height: 2;
+      color: var(--text-secondary);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .flow .hit {
+      color: #b5cea8;
+      font-weight: 600;
+    }
+
+    .flow .miss {
+      color: #f472b6;
+      font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 24px 16px;
+      }
+
+      header h1 {
+        font-size: 36px;
+      }
+
+      h2 {
+        font-size: 24px;
+      }
+
+      h3 {
+        font-size: 18px;
+      }
+
+      table {
+        font-size: 14px;
+      }
+
+      table th, table td {
+        padding: 12px;
+      }
+
+      pre {
+        font-size: 12px;
+        padding: 16px;
+      }
+    }
+
+    /* Utility classes */
+    .section-divider {
+      border-top: 1px solid var(--border-color);
+      margin: 60px 0;
+      padding-top: 40px;
+    }
+
+    .highlight {
+      color: var(--accent-pink);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>Axis Cache</h1>
+      <p>Implementation document: every file under src/core/cache/, the request path, and each method's exact behavior</p>
+    </header>
+
+    <!-- Intro -->
+    <section>
+      <p>How caching is built inside the <code>axis</code> library: every file under <code>src/core/cache/</code>, the request path through <code>Axis</code> and <code>AxisQueryEngine</code>, and the exact behavior of each method. All file paths below refer to the <code>axis</code> package unless noted.</p>
+    </section>
+
+    <!-- TOC -->
+    <nav class="toc">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#map">Folder map</a></li>
+        <li><a href="#workflow">Request-level workflow</a></li>
+        <li><a href="#types">types.ts — the contract</a></li>
+        <li><a href="#cache-key">cache-key.ts — createCacheKey</a></li>
+        <li><a href="#key-builder">key-builder.ts — buildCacheKey</a></li>
+        <li><a href="#memory">memory-cache.ts — MemoryCache</a></li>
+        <li><a href="#manager">cache-manager.ts — CacheManager</a></li>
+        <li><a href="#valkey">valkey-cache.ts — ValkeyCache</a></li>
+        <li><a href="#index">index.ts — public surface</a></li>
+        <li><a href="#ttl">TTL reference</a></li>
+        <li><a href="#failures">Failure matrix</a></li>
+      </ol>
+    </nav>
+
+    <!-- Section 1: Folder map -->
+    <section id="map" class="section-divider">
+      <h2>1. Folder map</h2>
+      <div class="flow">src/core/cache/
+  types.ts          Cache + CacheInfo interfaces (the pluggable contract)
+  cache-key.ts      createCacheKey — simple non-hashed key (legacy / debug use)
+  key-builder.ts    buildCacheKey — normalized + sha256-hashed production key
+  memory-cache.ts   MemoryCache — in-process Map backend
+  cache-manager.ts  CacheManager — key generation → lookup → store, stats, invalidation
+  valkey-cache.ts   ValkeyCache — shared Redis-protocol backend via ioredis
+  index.ts          public re-exports</div>
+      <p>Dependency rule: <code>query-engine/</code> and <code>core/axis.ts</code> know only <code>CacheManager</code>. <code>CacheManager</code> knows only the <code>Cache</code> interface and <code>buildCacheKey</code>. Nothing above the manager imports a concrete backend — that is what makes backends interchangeable.</p>
+    </section>
+
+    <!-- Section 2: Workflow -->
+    <section id="workflow" class="section-divider">
+      <h2>2. Request-level workflow</h2>
+      <p>One <code>axis.query(input)</code> executes this path (<code>src/core/query-engine/query-engine.ts</code>):</p>
+      <div class="flow">1. parseAxisQuery(input)        → AxisQuery | throws ValidationError
+2. buildQueryAST(query)         → AST
+3. registry.get(query.model)    → ModelDefinition | throws "not registered"
+4. resolveQuery(ast, model)     → resolved query | throws ResolutionError
+5. cache.get(query)             → <span class="hit">HIT: return result (steps 6–8 skipped)</span>
+6. compileQuery(resolved)       → SQL | throws CompilationError
+7. executor.execute(compiled)   → QueryResult | throws ExecutionError/DatabaseError
+8. cache.set(query, result, query.cacheTtl) → return result</div>
+      <p>Steps 5 and 8 each run only <code>if (this.cache !== undefined)</code> — the engine's third constructor argument. Omitting <code>cache</code> from <code>AxisConfig</code> leaves both out: zero overhead, zero behavior change. Caching is opt-in.</p>
+      <p>The cache sits after validation and resolution on purpose. Invalid shapes, unknown models, axes, metrics, and order fields all throw before any cache contact, so failures are never stored and identical failures surface with caching on or off. Compilation and execution failures likewise throw before step 8, so a failed query never poisons the cache and a retry always reaches Postgres.</p>
+      <p><code>Axis</code> itself (<code>src/core/axis.ts</code>) is thin: the constructor builds a <code>Database</code>, a <code>CacheManager</code> via <code>createCacheManager(config.cache)</code>, and an <code>AxisQueryEngine(database, registry, cacheManager)</code>. <code>axis.cache</code> exposes the manager for stats and invalidation; <code>axis.invalidateModel(model)</code> delegates, returning 0 when no manager exists; <code>axis.close()</code> closes the database pool, then the manager.</p>
+      <p><code>createCacheManager</code> returns <code>undefined</code> when <code>config.cache</code> is omitted, returns <code>config.manager</code> as-is when given (full-control path: backend/TTL construction skipped), and otherwise builds <code>new CacheManager</code> from whichever of <code>backend</code>/<code>ttl</code>/<code>enabled</code> are present. Properties are spread conditionally because <code>exactOptionalPropertyTypes</code> forbids passing explicit <code>undefined</code>.</p>
+    </section>
+
+    <!-- Section 3: types -->
+    <section id="types" class="section-divider">
+      <h2>3. types.ts — the contract</h2>
+      <pre><code class="typescript">export interface CacheInfo { size?: number; evictions?: number; }
+
+export interface Cache {
+  get&lt;T&gt;(key: string): Promise&lt;T | undefined&gt;;
+  set&lt;T&gt;(key: string, value: T, ttl?: number): Promise&lt;void&gt;;
+  delete(key: string): Promise&lt;void&gt;;
+  clear(): Promise&lt;void&gt;;
+  describe?(): CacheInfo | Promise&lt;CacheInfo&gt;;
+  close?(): Promise&lt;void&gt;;
+}</code></pre>
+      <p>Per-method contract:</p>
+      <ul>
+        <li><strong><code>get</code></strong> — stored value, or <code>undefined</code> on miss (absent, expired, corrupt). Never throws for a plain miss.</li>
+        <li><strong><code>set</code></strong> — stores <code>value</code> under <code>key</code>. <code>ttl</code> is milliseconds; omitted means no expiry. Must reject negative or non-finite TTLs with <code>RangeError</code> rather than store instantly-dead entries.</li>
+        <li><strong><code>delete</code></strong> — removes one key; missing key is a no-op.</li>
+        <li><strong><code>clear</code></strong> — removes everything the cache owns; must never touch foreign keyspaces.</li>
+        <li><strong><code>describe?</code></strong> — optional introspection. Absence (or <code>{}</code>) means "unknown"; callers cope without it.</li>
+        <li><strong><code>close?</code></strong> — optional resource release. Absence means nothing to release.</li>
+      </ul>
+    </section>
+
+    <!-- Section 4: cache-key -->
+    <section id="cache-key" class="section-divider">
+      <h2>4. cache-key.ts — createCacheKey</h2>
+      <pre><code class="typescript">createCacheKey(query: AxisQuery): string  // → `axis:${stableStringify(query)}`</code></pre>
+      <p>Serializes the raw query with no normalization and no hashing — key length grows with the query, and semantically identical queries in different field order still share a key (object keys sorted) but array order is preserved (filter order significant here, unlike <code>buildCacheKey</code>). This is the older/simpler key function, kept exported for debugging and tests; the manager and engine use <code>buildCacheKey</code>.</p>
+      <p>Its local <code>stableStringify</code>: <code>undefined</code> → <code>"undefined"</code>; <code>NaN</code>/<code>Infinity</code>/<code>-Infinity</code> get their own tokens instead of colliding with <code>null</code> as under <code>JSON.stringify</code>; <code>null</code> and non-objects go through <code>JSON.stringify</code> with a <code>?? "undefined"</code> guard so functions/symbols (impossible post-validation) can never crash keygen; arrays map element-wise; objects sort keys with default <code>.sort()</code> and recurse.</p>
+    </section>
+
+    <!-- Section 5: key-builder -->
+    <section id="key-builder" class="section-divider">
+      <h2>5. key-builder.ts — buildCacheKey</h2>
+      <pre><code class="typescript">buildCacheKey(query: AxisQuery, options?: CacheKeyOptions): string
+// → `&lt;prefix&gt;:&lt;sanitized model&gt;:&lt;sha256 hex digest&gt;`</code></pre>
+      <p><code>CacheKeyOptions</code> is <code>{ prefix?: string; algorithm?: string }</code>, defaulting to <code>"axis"</code> and <code>"sha256"</code>.</p>
+      <h3>5.1 Input guards</h3>
+      <p>Non-object or <code>null</code> query → <code>TypeError</code> naming the received kind (<code>null</code>, <code>array</code>, or <code>typeof</code>). Empty or non-string <code>model</code> → <code>TypeError</code>. Empty resolved prefix → <code>TypeError</code>. These throw loudly because a guessed key would risk cross-query collisions.</p>
+      <h3>5.2 Normalization (normalizeQuery)</h3>
+      <p>Builds a <code>CanonicalQuery</code> containing only <code>{ model, axes?, metrics?, filters?, orderBy?, limit?, offset? }</code>:</p>
+      <ul>
+        <li><code>axes</code> / <code>metrics</code> pass through <code>dedupeAndSort</code>: <code>undefined</code> → <code>[]</code>, otherwise de-duplicated via <code>Set</code> and sorted. Empty results are omitted from the canonical form, so <code>axes: []</code> and omitted produce the same key.</li>
+        <li><code>filters</code> map to <code>{ field, operator, value? }</code> (extra properties stripped; <code>value</code> carried only when defined, so <code>isNull</code> without value canonicalizes cleanly), with array values sorted by <code>normalizeValue</code>. The list is then sorted by each entry's full <code>stableStringify</code> form — sorting by field alone would leave same-field filters in input order, and AND is commutative, so the complete canonical string is the sort key. <code>orderBy</code> maps to <code>{ field, direction }</code> and is deliberately <strong>not</strong> sorted: priority order changes the answer.</li>
+        <li><code>limit</code> / <code>offset</code> copy through verbatim. <code>cacheTtl</code> is never copied — freshness policy is excluded from identity, so identical queries with different TTLs share one entry.</li>
+      </ul>
+      <h3>5.3 Helpers</h3>
+      <ul>
+        <li><code>normalizeValue</code> — non-arrays pass through; arrays are copied and sorted by <code>stableStringify</code> comparison (covers scalar <code>in</code>/<code>notIn</code> lists regardless of element type).</li>
+        <li><code>dedupeAndSort</code> — <code>Set</code> dedupe then <code>compareStrings</code> sort.</li>
+        <li><code>compareStrings</code> — code-unit order (<code>a &lt; b ? -1 : …</code>). <code>localeCompare</code> is avoided because ICU data and runtime locale vary per host and would make the same query hash differently on different machines.</li>
+        <li><code>sanitizeSegment</code> — replaces <code>[^A-Za-z0-9_.-]</code> with <code>_</code> for Valkey-safe key segments. The raw model stays inside the hashed payload, so <code>a/b</code> and <code>a_b</code> (same sanitized segment) still digest differently.</li>
+        <li><code>typeName</code> — <code>null</code> → <code>"null"</code>, arrays → <code>"array"</code>, else <code>typeof</code>, used only for guard error messages.</li>
+      </ul>
+      <h3>5.4 Serialization and digest</h3>
+      <p>The file's own <code>stableStringify</code> sorts object keys with <code>compareStrings</code> and tokens every distinct value distinctly: <code>undefined</code> → <code>"undefined"</code>; numbers special-case <code>NaN</code>/<code>±Infinity</code> before <code>JSON.stringify</code>; <code>bigint</code> → <code>"bigint:&lt;digits&gt;"</code>; strings/booleans via <code>JSON.stringify</code>; <code>null</code> → <code>"null"</code>; arrays map element-wise; plain objects recurse over sorted keys. Anything else (function, symbol) throws <code>TypeError</code> — refusing to guess beats a silent collision.</p>
+      <p>The digest is <code>createHash(algorithm).update(stableStringify(canonical), "utf8").digest("hex")</code> — 64 hex chars, fixed length regardless of query size, so Valkey memory per key is predictable.</p>
+      <h3>5.5 Key equivalence summary</h3>
+      <p>Same key: axes/metrics reordered or duplicated; filters reordered; <code>in</code>-list reordered; empty vs omitted selections; different <code>cacheTtl</code>. Different key: <code>orderBy</code> order or direction; <code>limit</code>/<code>offset</code>; anything else in the canonical query.</p>
+    </section>
+
+    <!-- Section 6: memory -->
+    <section id="memory" class="section-divider">
+      <h2>6. memory-cache.ts — MemoryCache</h2>
+      <p>In-process <code>Map&lt;string, { value: unknown; expiresAt?: number }&gt;</code> with a size cap.</p>
+      <ul>
+        <li>Constructor takes <code>{ maxSize?: number }</code> (default 1000). Non-integer or <code>&lt; 1</code> throws <code>RangeError</code> immediately.</li>
+        <li><code>get(key)</code> — missing entry → <code>undefined</code>. Present with <code>expiresAt</code> reached (<code>Date.now() &gt;= expiresAt</code>) → deleted and <code>undefined</code> (lazy expiry; <code>ttl: 0</code> therefore expires on next read). Otherwise returns the stored reference; the manager handles copy isolation above this layer.</li>
+        <li><code>set(key, value, ttl?)</code> — <code>toExpiresAt</code> validates (<code>undefined</code> → no expiry; non-number/non-finite → <code>RangeError</code>; negative → <code>RangeError</code>) and converts to an absolute timestamp. Then delete-then-set: removing first refreshes the key's insertion position, so an overwritten hot key is not evicted as "oldest". <code>evictOverflow()</code> runs after every write.</li>
+        <li><code>delete(key)</code> — <code>Map.delete</code>; missing key is a no-op. <code>clear()</code> — <code>Map.clear</code>. <code>size</code> getter returns <code>store.size</code>, including not-yet-reaped expired entries. <code>describe()</code> returns <code>{ size, evictions }</code>.</li>
+        <li><code>evictOverflow()</code> — returns fast when within cap. Otherwise two passes, each stopping as soon as the cap is met: first sweep deletes expired entries (reclaimed garbage, <strong>not</strong> counted); second pass deletes oldest-inserted first (<code>Map</code> iterates in insertion order) and increments <code>evictionCount</code> per entry. Only <code>set</code> writes, so work stays proportional to the overflow, not the map.</li>
+      </ul>
+    </section>
+
+    <!-- Section 7: manager -->
+    <section id="manager" class="section-divider">
+      <h2>7. cache-manager.ts — CacheManager</h2>
+      <p>Owns the full per-query lifecycle plus statistics and invalidation. State: <code>backend</code>, <code>ownsBackend</code> (true only when the manager constructed the default <code>MemoryCache</code>), <code>defaultTtl</code>, <code>enabled</code>, <code>keyPrefix</code>, the per-model key index <code>Map&lt;string, Set&lt;string&gt;&gt;</code>, and counters <code>hits</code>/<code>misses</code>/<code>sets</code>/<code>deletes</code>.</p>
+      <ul>
+        <li>Constructor validates <code>ttl</code> (non-number, non-finite, or negative → <code>RangeError</code>); defaults are backend <code>new MemoryCache()</code>, TTL <code>DEFAULT_CACHE_TTL_MS</code> (60_000), <code>enabled: true</code>, prefix <code>"axis"</code>. Getters <code>isEnabled</code> and <code>ttl</code> expose the switch and default.</li>
+        <li><code>keyFor(query)</code> — <code>buildCacheKey(query, { prefix: this.keyPrefix })</code>. Same input → same key.</li>
+        <li><code>get(query)</code> — disabled → <code>undefined</code> immediately (backend and counters untouched). Unbuildable key → miss counted, <code>undefined</code>. Backend <code>undefined</code> → miss. Backend value → hit counted and returned as a <code>structuredClone</code> copy, so mutating a hit cannot poison later readers. Backend throw → miss counted, <code>undefined</code>. Every path resolves; none throws.</li>
+        <li><code>set(query, value, ttl?)</code> — disabled or unbuildable key → silent return. Otherwise stores <code>cloneValue(value)</code> under the built key with <code>ttl ?? defaultTtl</code> (the engine passes the query's own <code>cacheTtl</code> here, giving per-query TTL precedence). Backend throw → silent return with no counter movement. Only a successful write increments <code>sets</code> and records the key via <code>trackKey(model, key)</code>.</li>
+        <li><code>delete(query)</code> — disabled or unbuildable key → silent return. Backend throw → silent return. Success increments <code>deletes</code> and prunes the key via <code>untrackKey</code> (empty per-model sets are removed from the index).</li>
+        <li><code>invalidateModel(model)</code> — disabled → 0. Unknown or empty model set → 0. Otherwise deletes each tracked key individually, continuing past per-key failures (fail-open), adds the removed count to <code>deletes</code>, drops the model's index entry, and returns the count. Stale index entries (evicted/expired keys) delete as no-ops and still count — the count means "keys processed", not "live entries found".</li>
+        <li><code>clear()</code> — always forgets the whole key index first, then (when enabled) clears the backend, swallowing failures.</li>
+        <li><code>stats()</code> — always returns <code>{ hits, misses, sets, deletes }</code>, then (when enabled) merges <code>entries</code>/<code>evictions</code> from <code>backend.describe?.()</code>. Never throws, even against a dead backend.</li>
+        <li><code>resetStats()</code> — zeroes the four counters synchronously; entries untouched.</li>
+        <li><code>close()</code> — closes the backend only when <code>ownsBackend</code>; an injected backend stays the caller's own.</li>
+        <li><code>trackKey</code> / <code>untrackKey</code> — private index maintenance. <code>cloneValue</code> — <code>structuredClone</code> with a reference fallback (functions/symbols can never be valid cached results, but a fallback beats crashing the query path).</li>
+      </ul>
+      <p>Counter semantics to rely on: <code>sets</code> counts successful writes only; <code>deletes</code> counts single deletes plus invalidated keys; <code>misses</code> includes absent, expired, corrupt, key-failure, and backend-failure lookups — i.e. every fall-through to Postgres.</p>
+    </section>
+
+    <!-- Section 8: valkey -->
+    <section id="valkey" class="section-divider">
+      <h2>8. valkey-cache.ts — ValkeyCache</h2>
+      <p>Production backend over the Redis protocol, interchangeable behind <code>Cache</code>. Key behaviors:</p>
+      <ul>
+        <li><code>ValkeyClient</code> is a minimal six-command surface (<code>get</code>, <code>set</code>, <code>del</code>, <code>unlink</code>, <code>scan</code>, <code>quit</code>). <code>ioredis.Redis</code> satisfies it structurally; tests inject an in-memory fake, so no live server is needed to verify behavior.</li>
+        <li>Constructor takes <code>{ url?, client?, clearMatch?, scanCount? }</code> (defaults <code>valkey://localhost:6379</code>, <code>"axis:*"</code>, <code>100</code>). Injected <code>client</code> sets <code>ownsClient: false</code>; otherwise a <code>Redis</code> is created with <code>lazyConnect: true</code> and <code>enableAutoPipelining: true</code> and wrapped by <code>adaptRedis</code>. The adapter exists because <code>ioredis</code>' overloaded <code>set</code> accepts trailing callbacks and is not directly assignable to the minimal surface — the wrapper forwards only the argument shapes used.</li>
+        <li><code>get</code> — <code>null</code> → <code>undefined</code> (miss). Otherwise <code>JSON.parse</code>; corrupt JSON → miss with best-effort <code>del</code> reap. Throws from the client propagate to the manager, which counts a miss.</li>
+        <li><code>set</code> — <code>assertTtl</code> rejects non-number/non-finite/negative TTLs with <code>RangeError</code>. <code>ttl === 0</code> returns without writing (Valkey rejects <code>PX 0</code>; zero means already expired). <code>JSON.stringify</code> returning <code>undefined</code> throws <code>TypeError</code> instead of writing garbage. Otherwise <code>SET key raw</code> without TTL, or <code>SET key raw PX Math.floor(ttl)</code> — exact milliseconds, no seconds rounding.</li>
+        <li><code>delete</code> — <code>del(key)</code>. <code>clear()</code> — paged <code>SCAN MATCH &lt;clearMatch&gt; COUNT &lt;scanCount&gt;</code> loop, removing each page with non-blocking <code>UNLINK</code>; cursor <code>"0"</code> ends. Never <code>FLUSHDB</code>, so foreign keyspaces on a shared instance survive. <code>describe()</code> returns <code>{}</code> — size would need a keyspace scan, and unknown beats expensive. <code>close()</code> quits only a self-created client, swallowing failures; injected clients are never closed.</li>
+      </ul>
+    </section>
+
+    <!-- Section 9: index -->
+    <section id="index" class="section-divider">
+      <h2>9. index.ts — public surface</h2>
+      <p>Re-exports types (<code>Cache</code>, <code>CacheInfo</code>, <code>MemoryCacheOptions</code>, <code>CacheKeyOptions</code>, <code>CacheManagerOptions</code>, <code>CacheStats</code>, <code>CacheStatsSnapshot</code>, <code>ValkeyCacheOptions</code>, <code>ValkeyClient</code>) and values (<code>MemoryCache</code>, <code>createCacheKey</code>, <code>buildCacheKey</code>, <code>CacheManager</code>, <code>DEFAULT_CACHE_TTL_MS</code>, <code>ValkeyCache</code>). This is the module boundary consumers import from; internal helpers (<code>normalizeQuery</code>, <code>stableStringify</code>, <code>evictOverflow</code>, <code>cloneValue</code>, <code>adaptRedis</code>, …) stay private to their files.</p>
+    </section>
+
+    <!-- Section 10: TTL -->
+    <section id="ttl" class="section-divider">
+      <h2>10. TTL reference (all layers, milliseconds)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Rule</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>AxisQuery.cacheTtl</code></td>
+            <td>Per-query override, carried by the engine into <code>manager.set</code>. Excluded from the key. First write wins the entry's lifetime; a later <code>set</code> refreshes value and expiry together</td>
+          </tr>
+          <tr>
+            <td><code>CacheManager</code> default (<code>ttl</code>, 60s)</td>
+            <td>Applies to every <code>set</code> without an explicit TTL</td>
+          </tr>
+          <tr>
+            <td>Omitted everywhere</td>
+            <td>No expiry (reachable only when no default applies, e.g. direct backend use without TTL)</td>
+          </tr>
+          <tr>
+            <td>Validation</td>
+            <td><code>CacheManager</code> constructor, <code>MemoryCache.toExpiresAt</code>, and <code>ValkeyCache.assertTtl</code> all throw <code>RangeError</code> on negative or non-finite TTLs</td>
+          </tr>
+          <tr>
+            <td><code>ttl: 0</code></td>
+            <td>"Already expired": <code>MemoryCache</code> expires it on next read; <code>ValkeyCache</code> skips the write</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Section 11: Failures -->
+    <section id="failures" class="section-divider">
+      <h2>11. Failure matrix</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Failure</th>
+            <th>Where caught</th>
+            <th>Visible effect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Invalid query shape</td>
+            <td>Engine step 1, before cache</td>
+            <td><code>ValidationError</code>; cache untouched</td>
+          </tr>
+          <tr>
+            <td>Unknown model/axis/metric, compile error</td>
+            <td>Engine steps 3–4/6, before store</td>
+            <td>422-class error; nothing stored</td>
+          </tr>
+          <tr>
+            <td>Execution/database error</td>
+            <td>Engine step 7, before store</td>
+            <td>Error propagates; retry reaches Postgres</td>
+          </tr>
+          <tr>
+            <td>Backend throw on <code>get</code></td>
+            <td><code>CacheManager.get</code></td>
+            <td>Miss; query falls through to Postgres</td>
+          </tr>
+          <tr>
+            <td>Backend throw on <code>set</code>/<code>delete</code>/<code>clear</code></td>
+            <td>Respective manager method</td>
+            <td>Silently skipped; result still returned</td>
+          </tr>
+          <tr>
+            <td>Corrupt Valkey entry</td>
+            <td><code>ValkeyCache.get</code></td>
+            <td>Miss + best-effort reap</td>
+          </tr>
+          <tr>
+            <td>Unserializable key input</td>
+            <td><code>buildCacheKey</code></td>
+            <td><code>TypeError</code> → manager treats lookup as miss, store as skip</td>
+          </tr>
+          <tr>
+            <td><code>stats()</code> backend failure</td>
+            <td><code>CacheManager.stats</code></td>
+            <td>Counters still returned</td>
+          </tr>
+        </tbody>
+      </table>
+      <blockquote>
+        <strong>Design invariant:</strong> a bug or outage in the cache layer can only cause extra misses (slower), never wrong answers or changed errors.
+      </blockquote>
+    </section>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding-top: 40px; border-top: 1px solid var(--border-color); margin-top: 60px; color: var(--text-secondary);">
+      <p><small>Companion to <a href="./cache.html">Axis Caching</a> — same theme, same structure. Covers the library implementation in <code>axis/src/core/cache/</code> plus the engine hook in <code>axis/src/core/query-engine/query-engine.ts</code> and configuration in <code>axis/src/core/axis.ts</code>.</small></p>
+    </footer>
+  </div>
+
+  <script>
+    // Lightweight editor-style syntax highlighting (no dependencies).
+    // Colors mimic VS Code Dark+: keywords purple, strings orange,
+    // numbers green, comments grey-green, functions yellow, vars blue.
+    (function () {
+      function esc(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+      function span(cls, s) {
+        return '<span class="' + cls + '">' + esc(s) + "</span>";
+      }
+
+      var JS_KEYWORDS = /^(const|let|var|import|from|export|return|await|async|function|new|if|throw|typeof|in|of)$/;
+      var JS_TYPES = /^(string|number|boolean|null|true|false)$/;
+
+      function highlightJS(src) {
+        var re = /(\/\/[^\n]*|#[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(\d+(?:\.\d+)?)\b|\b([A-Za-z_$][\w$]*)\b|(\s+|.)/g;
+        var out = "", m;
+        while ((m = re.exec(src))) {
+          var comment = m[1], str = m[2], num = m[3], word = m[4], other = m[5];
+          if (comment !== undefined) out += span("tok-c", comment);
+          else if (str !== undefined) out += span("tok-s", str);
+          else if (num !== undefined) out += span("tok-n", num);
+          else if (word !== undefined) {
+            if (JS_KEYWORDS.test(word)) out += span("tok-k", word);
+            else if (/^(true|false|null|undefined)$/.test(word)) out += span("tok-b", word);
+            else {
+              var rest = src.slice(re.lastIndex);
+              if (/^\s*\(/.test(rest)) out += span("tok-f", word);
+              else if (/^\s*:/.test(rest)) out += span("tok-p", word);
+              else out += span("tok-p", word);
+            }
+          }
+          else out += esc(other);
+        }
+        return out;
+      }
+
+      function highlightJSON(src) {
+        var re = /(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\b\d+(?:\.\d+)?\b)|(\s+|.)/g;
+        var out = "", m;
+        while ((m = re.exec(src))) {
+          var comment = m[1], str = m[2], colon = m[3], bool = m[4], num = m[5], other = m[6];
+          if (comment !== undefined) out += span("tok-c", comment);
+          else if (str !== undefined) {
+            out += colon !== undefined
+              ? span("tok-p", str) + esc(colon)
+              : span("tok-s", str);
+          }
+          else if (bool !== undefined) out += span("tok-b", bool);
+          else if (num !== undefined) out += span("tok-n", num);
+          else out += esc(other);
+        }
+        return out;
+      }
+
+      function highlightBash(src) {
+        var lines = src.split("\n"), html = [];
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (/^\s*(#.*)?$/.test(line)) {
+            html.push(line.trim().startsWith("#") ? span("tok-c", line) : esc(line));
+            continue;
+          }
+          var re = /(#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(--[A-Za-z][\w-]*|-[A-Za-z]+)|\b(\d+)\b|\b(curl|npm|node|npx|fetch)\b|(\s+|\S+)/g;
+          var out = "", m;
+          while ((m = re.exec(line))) {
+            if (m[1] !== undefined) out += span("tok-c", m[1]);
+            else if (m[2] !== undefined) out += span("tok-s", m[2]);
+            else if (m[3] !== undefined) out += span("tok-flag", m[3]);
+            else if (m[4] !== undefined) out += span("tok-n", m[4]);
+            else if (m[5] !== undefined) out += span("tok-cmd", m[5]);
+            else out += esc(m[6]);
+          }
+          html.push(out);
+        }
+        return html.join("\n");
+      }
+
+      function highlightTS(src) {
+        // TypeScript = JS highlighting + type names in teal.
+        var html = highlightJS(src);
+        return html.replace(
+          /<span class="tok-p">([A-Z][A-Za-z0-9_]*)<\/span>/g,
+          '<span class="tok-t">$1</span>'
+        );
+      }
+
+      document.querySelectorAll("pre code").forEach(function (el) {
+        var lang = (el.className || "").toLowerCase();
+        var src = el.textContent;
+        if (lang.indexOf("typescript") >= 0 || lang.indexOf(" ts") >= 0) el.innerHTML = highlightTS(src);
+        else if (lang.indexOf("javascript") >= 0 || lang.indexOf(" js") >= 0) el.innerHTML = highlightJS(src);
+        else if (lang.indexOf("json") >= 0) el.innerHTML = highlightJSON(src);
+        else el.innerHTML = highlightBash(src); // bash / curl blocks
+      });
+    })();
+  </script>
+</body>
+</html>

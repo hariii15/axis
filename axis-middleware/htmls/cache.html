@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axis — Caching</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #000000;
+      --bg-secondary: #0a0a0a;
+      --bg-tertiary: #161616;
+      --text-primary: #f5f7fa;
+      --text-secondary: #cbd5e1;
+      --accent-pink: #ec4899;
+      --accent-pink-light: #f472b6;
+      --border-color: #262626;
+      --code-bg: #0a0a0a;
+      --code-border: #262626;
+    }
+
+    body {
+      font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    header h1 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-pink-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    
+    header p {
+      font-size: 18px;
+      color: var(--text-secondary);
+      font-weight: 300;
+    }
+
+    /* Table of Contents */
+    .toc {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 60px;
+    }
+
+    .toc h2 {
+      color: var(--accent-pink);
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    .toc ol {
+      list-style: none;
+      counter-reset: item;
+    }
+
+    .toc li {
+      counter-increment: item;
+      margin-bottom: 12px;
+      padding-left: 8px;
+    }
+
+    .toc li:before {
+      content: counter(item) ". ";
+      color: var(--accent-pink);
+      font-weight: 600;
+    }
+
+    .toc a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .toc a:hover {
+      color: var(--accent-pink);
+    }
+
+    /* Headings */
+    h1 {
+      font-size: 42px;
+      font-weight: 700;
+      margin: 60px 0 24px 0;
+      color: var(--accent-pink);
+      scroll-margin-top: 80px;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      margin: 48px 0 20px 0;
+      color: var(--accent-pink);
+      scroll-margin-top: 80px;
+    }
+
+    h3 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 36px 0 16px 0;
+      color: var(--text-primary);
+    }
+
+    h4 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 24px 0 12px 0;
+      color: var(--text-secondary);
+    }
+
+    /* Text blocks */
+    p {
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    p + p {
+      margin-top: 16px;
+    }
+
+    /* Links */
+    a {
+      color: var(--accent-pink);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    a:hover {
+      color: var(--accent-pink-light);
+      text-decoration: underline;
+    }
+
+    /* Code blocks */
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      margin: 24px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #d4d4d4;
+    }
+
+    pre code {
+      color: #d4d4d4;
+    }
+
+    pre code .tok-k { color: #c586c0; }  /* keyword: const, import, return */
+    pre code .tok-s { color: #ce9178; }  /* string */
+    pre code .tok-n { color: #b5cea8; }  /* number */
+    pre code .tok-c { color: #6a9955; font-style: italic; } /* comment */
+    pre code .tok-f { color: #dcdcaa; }  /* function / class name */
+    pre code .tok-p { color: #9cdcfe; }  /* property / variable */
+    pre code .tok-b { color: #569cd6; }  /* boolean / null */
+    pre code .tok-t { color: #4ec9b0; }  /* type */
+    pre code .tok-flag { color: #9cdcfe; } /* --flags, -X */
+    pre code .tok-cmd { color: #dcdcaa; font-weight: 600; } /* curl, npm */
+
+    /* Inline code */
+    p code, li code, td code, h3 code, h4 code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background-color: var(--bg-tertiary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    li strong {
+      color: var(--text-primary);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 32px 0;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    table th {
+      background-color: var(--bg-tertiary);
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--accent-pink);
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    table tr:last-child td {
+      border-bottom: none;
+    }
+
+    table tr:hover {
+      background-color: var(--bg-tertiary);
+    }
+
+    /* Blockquotes & Tips */
+    blockquote {
+      border-left: 4px solid var(--accent-pink);
+      background-color: rgba(236, 72, 153, 0.05);
+      padding: 16px 20px;
+      margin: 24px 0;
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    blockquote strong {
+      color: var(--text-primary);
+    }
+
+    /* Sections */
+    section {
+      margin-bottom: 48px;
+    }
+
+    /* Horizontal rule */
+    hr {
+      border: none;
+      height: 1px;
+      background-color: var(--border-color);
+      margin: 48px 0;
+    }
+
+    /* Syntax highlighting for bash/bash commands */
+    .bash-command {
+      background-color: var(--code-bg);
+      border-left: 3px solid var(--accent-pink);
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 4px;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #d4d4d4;
+      font-size: 14px;
+    }
+
+    /* Flow diagram blocks */
+    .flow {
+      border: 1px solid var(--code-border);
+      border-left: 3px solid var(--accent-pink);
+      border-radius: 8px;
+      background-color: var(--code-bg);
+      padding: 20px 24px;
+      margin: 24px 0;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 14px;
+      line-height: 2;
+      color: var(--text-secondary);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .flow .hit {
+      color: #b5cea8;
+      font-weight: 600;
+    }
+
+    .flow .miss {
+      color: #f472b6;
+      font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 24px 16px;
+      }
+
+      header h1 {
+        font-size: 36px;
+      }
+
+      h2 {
+        font-size: 24px;
+      }
+
+      h3 {
+        font-size: 18px;
+      }
+
+      table {
+        font-size: 14px;
+      }
+
+      table th, table td {
+        padding: 12px;
+      }
+
+      pre {
+        font-size: 12px;
+        padding: 16px;
+      }
+    }
+
+    /* Utility classes */
+    .section-divider {
+      border-top: 1px solid var(--border-color);
+      margin: 60px 0;
+      padding-top: 40px;
+    }
+
+    .highlight {
+      color: var(--accent-pink);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>Axis Caching</h1>
+      <p>How query results are cached, why it works this way, and how to configure it</p>
+    </header>
+
+    <!-- Intro -->
+    <section>
+      <p>Dashboards ask the same questions over and over: <em>"pending requisitions by department"</em>, refreshed every few seconds by every open tab. Without caching, each of those repeats the full trip — validate, resolve, compile SQL, hit Postgres, serialize rows.</p>
+      <p>Axis caching sits <strong>between resolution and execution</strong>: the first identical query runs against Postgres and its result is stored; repeats are served from the store without touching the database at all.</p>
+      <blockquote>
+        <strong>The golden rule:</strong> caching is a pure performance layer. It never changes <em>what</em> a query returns or <em>which</em> errors surface — only <em>how fast</em> repeated queries answer. If the cache backend dies, queries keep working, just slower. That property is called <strong>fail-open</strong>, and it is designed into every layer below.
+      </blockquote>
+    </section>
+
+    <!-- Section 1: Workflow -->
+    <section id="workflow" class="section-divider">
+      <h2>1. How a query flows through the cache</h2>
+      <p>Every <code>axis.query()</code> with caching configured follows this path:</p>
+      <div class="flow">Query
+ ↓
+Validate ── invalid? ──▶ ValidationError (never cached, never stored)
+ ↓
+Resolve ─── unknown model/axis/metric? ──▶ ResolutionError (never cached)
+ ↓
+Cache Key (buildCacheKey)
+ ↓
+CacheManager.get()
+ ↓
+ <span class="hit">├── HIT  → return stored Result (no SQL, no database)</span>
+ │
+ <span class="miss">└── MISS ──▶ Compile → Database → CacheManager.set() → Result</span></div>
+      <p>Three decisions in that diagram are deliberate:</p>
+      <ul>
+        <li><strong>The cache is consulted after validation and resolution.</strong> Typos and bad shapes fail exactly as they do with caching off — and, just as importantly, failures are never written into the cache.</li>
+        <li><strong>Only successful results are stored.</strong> A database error runs, throws, and leaves no trace in the cache, so the next retry hits Postgres again instead of replaying a failure.</li>
+        <li><strong>Every cache interaction is fail-open.</strong> Backend down, corrupt entry, unbuildable key — the query falls through to Postgres. Caching can only ever cost performance when broken, never correctness.</li>
+      </ul>
+    </section>
+
+    <!-- Section 2: Architecture -->
+    <section id="architecture" class="section-divider">
+      <h2>2. Architecture: the pieces and their files</h2>
+      <p>All caching code lives in <code>src/core/cache/</code> inside the <code>axis</code> package. Each piece has exactly one job:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Piece</th>
+            <th>File</th>
+            <th>Job</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Cache</code> / <code>CacheInfo</code></td>
+            <td><code>types.ts</code></td>
+            <td>The pluggable contract every backend implements. Axis never talks to a concrete store.</td>
+          </tr>
+          <tr>
+            <td><code>buildCacheKey</code></td>
+            <td><code>key-builder.ts</code></td>
+            <td>Turns a query into a fixed-length, Valkey-safe key. Semantically identical queries share a key.</td>
+          </tr>
+          <tr>
+            <td><code>MemoryCache</code></td>
+            <td><code>memory-cache.ts</code></td>
+            <td>In-process <code>Map</code> backend for local dev and single-instance use.</td>
+          </tr>
+          <tr>
+            <td><code>CacheManager</code></td>
+            <td><code>cache-manager.ts</code></td>
+            <td>Central abstraction: key generation → lookup → hit/miss → store, plus stats and invalidation.</td>
+          </tr>
+          <tr>
+            <td><code>ValkeyCache</code></td>
+            <td><code>valkey-cache.ts</code></td>
+            <td>Production backend over Valkey/Redis via <code>ioredis</code>. Interchangeable with <code>MemoryCache</code>.</td>
+          </tr>
+          <tr>
+            <td>Engine hook</td>
+            <td><code>query-engine/query-engine.ts</code></td>
+            <td>Consults the manager after resolution, stores after execution. No manager wired → zero behavior change.</td>
+          </tr>
+          <tr>
+            <td>Config + access</td>
+            <td><code>core/axis.ts</code> (<code>CacheConfig</code>)</td>
+            <td>Builds the manager from <code>cache: { enabled, ttl, backend, manager }</code>; exposes <code>axis.cache</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Dependency direction is strict: the engine and <code>Axis</code> only know <code>CacheManager</code>; the manager only knows the <code>Cache</code> interface plus the key builder. Nothing above the manager imports <code>MemoryCache</code> or <code>ValkeyCache</code> — that is what makes backends pluggable.</p>
+    </section>
+
+    <!-- Section 3: Interface -->
+    <section id="interface" class="section-divider">
+      <h2>3. The Cache interface (the pluggable contract)</h2>
+      <p>This is the entire surface a storage backend must implement — four required methods, two optional:</p>
+      <pre><code class="typescript">interface Cache {
+  get<T>(key: string): Promise&lt;T | undefined&gt;;
+  set&lt;T&gt;(key: string, value: T, ttl?: number): Promise&lt;void&gt;;
+  delete(key: string): Promise&lt;void&gt;;
+  clear(): Promise&lt;void&gt;;
+  describe?(): CacheInfo | Promise&lt;CacheInfo&gt;; // optional stats
+  close?(): Promise&lt;void&gt;;                     // optional cleanup
+}</code></pre>
+      <table>
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Contract</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>get</code></td>
+            <td>Returns the stored value or <code>undefined</code> on miss (absent, expired, or corrupt). Never throws for a plain miss.</td>
+          </tr>
+          <tr>
+            <td><code>set</code></td>
+            <td>Stores <code>value</code> under <code>key</code>. <code>ttl</code> is <strong>milliseconds</strong>; missing means "no expiry". Must reject negative or non-finite TTLs instead of storing instantly-dead entries.</td>
+          </tr>
+          <tr>
+            <td><code>delete</code></td>
+            <td>Removes one key. Deleting a missing key is a no-op.</td>
+          </tr>
+          <tr>
+            <td><code>clear</code></td>
+            <td>Removes everything this cache owns. Must never wipe data outside its own namespace (see Valkey below).</td>
+          </tr>
+          <tr>
+            <td><code>describe?</code></td>
+            <td>Optional introspection (<code>{ size?, evictions? }</code>). Absence means "unknown" — callers must cope without it.</td>
+          </tr>
+          <tr>
+            <td><code>close?</code></td>
+            <td>Optional resource release (sockets). Absence means "nothing to release".</td>
+          </tr>
+        </tbody>
+      </table>
+      <blockquote>
+        <strong>Why an interface, not a class?</strong> Because the day you outgrow one store, you swap the backend, not the library. <code>MemoryCache</code> today, <code>ValkeyCache</code> tomorrow, a <code>DragonflyCache</code> later — the manager, the engine, and your application code stay untouched. That is Phase&nbsp;14, and it is already the foundation everything else is built on.
+      </blockquote>
+    </section>
+
+    <!-- Section 4: Keys -->
+    <section id="keys" class="section-divider">
+      <h2>4. Cache keys: format and normalization</h2>
+      <p><code>buildCacheKey(query)</code> produces keys shaped like this:</p>
+      <pre><code class="bash">axis:PurchaseRequisitions:9f2c…a41b
+# │    │                      │
+# │    │                      └── sha256 of the normalized query (64 hex chars)
+# │    └───────────────────────── plaintext model segment
+# └────────────────────────────── namespace prefix (configurable)</code></pre>
+      <p>Each part earns its place:</p>
+      <ul>
+        <li><strong>Fixed length.</strong> Only the digest varies with query complexity, so Valkey memory stays predictable no matter how large a filter list gets.</li>
+        <li><strong>Plaintext model segment.</strong> Lets operators inspect and invalidate per model (<code>SCAN axis:PurchaseRequisitions:*</code>). The <em>raw</em> model name is also inside the hashed payload, so two models that sanitize to the same segment can never collide.</li>
+        <li><strong>Sanitized segments.</strong> Anything outside <code>[A-Za-z0-9_.-]</code> becomes <code>_</code>, keeping keys safe for Valkey tooling.</li>
+      </ul>
+      <h3>Normalization: same question, same key</h3>
+      <p>Two queries that mean the same thing must share an entry, or the hit rate collapses. The builder canonicalizes before hashing:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Input difference</th>
+            <th>Same key?</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Axes / metrics in different order</td>
+            <td>Yes</td>
+            <td>Selection order is insignificant — de-duplicated and sorted.</td>
+          </tr>
+          <tr>
+            <td>Filters in different order</td>
+            <td>Yes</td>
+            <td>AND is commutative — sorted by full canonical form (including values, not just field names).</td>
+          </tr>
+          <tr>
+            <td><code>in: [1,2,3]</code> vs <code>in: [3,1,2]</code></td>
+            <td>Yes</td>
+            <td>Value-list order is insignificant — sorted.</td>
+          </tr>
+          <tr>
+            <td><code>axes: []</code> vs omitted</td>
+            <td>Yes</td>
+            <td>Empty selections are treated as absent.</td>
+          </tr>
+          <tr>
+            <td>Different <code>orderBy</code> order or direction</td>
+            <td>No</td>
+            <td>Sort priority is significant — order preserved deliberately.</td>
+          </tr>
+          <tr>
+            <td>Different <code>limit</code> / <code>offset</code></td>
+            <td>No</td>
+            <td>Different pages are different answers.</td>
+          </tr>
+          <tr>
+            <td>Different <code>cacheTtl</code></td>
+            <td>Yes</td>
+            <td>TTL controls freshness, not content — excluded from the key.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Two subtle correctness details: string comparison uses code-unit order rather than <code>localeCompare</code> (which varies by host ICU data and would make the same query hash differently on different machines), and <code>NaN</code> / <code>±Infinity</code> get their own tokens instead of colliding with <code>null</code> as they do under <code>JSON.stringify</code>. Unserializable values (functions, symbols) throw a <code>TypeError</code> — failing loud beats a silent collision.</p>
+    </section>
+
+    <!-- Section 5: MemoryCache -->
+    <section id="memory" class="section-divider">
+      <h2>5. MemoryCache (local backend)</h2>
+      <p>An in-process <code>Map</code> withherent TTL and a size cap. Zero setup, zero network — the right default for development and single-instance deployments.</p>
+      <pre><code class="typescript">import { MemoryCache } from "axis";
+
+const backend = new MemoryCache({ maxSize: 1000 }); // default 1000
+await backend.set("axis:M:abc", result, 60_000);    // ttl in ms
+await backend.get("axis:M:abc");                    // value or undefined
+console.log(backend.size);                          // entries currently held</code></pre>
+      <h3>Eviction policy</h3>
+      <p>When a write would exceed <code>maxSize</code>, the cache evicts in two passes and stops as soon as the cap is met (work stays proportional to the overflow, not the whole map):</p>
+      <ol>
+        <li><strong>Expired entries first</strong> — they are garbage anyway. These do <em>not</em> count as evictions.</li>
+        <li><strong>Oldest-inserted entries</strong> — the <code>Map</code> preserves insertion order, so iteration starts at the oldest. Each of these increments the eviction counter.</li>
+      </ol>
+      <p>Overwriting a key refreshes its recency (delete-then-set), so a hot key is not evicted as "oldest". Expired entries are also reaped lazily on <code>get</code>. Introspection via <code>describe()</code> reports <code>{ size, evictions }</code>, which the manager merges into its statistics.</p>
+      <blockquote>
+        <strong>Limit to know:</strong> it lives in one Node process. Multi-instance deployments need <code>ValkeyCache</code> so every instance shares one cache — otherwise each server builds (and misses) its own.
+      </blockquote>
+    </section>
+
+    <!-- Section 6: Manager -->
+    <section id="manager" class="section-divider">
+      <h2>6. CacheManager (the central abstraction)</h2>
+      <p>The manager owns the full lifecycle — <em>key generation → lookup → hit/miss → store</em> — plus statistics and invalidation. The engine never touches a backend directly; application code shouldn't either.</p>
+      <pre><code class="typescript">import { CacheManager } from "axis";
+
+const cache = new CacheManager({
+  backend: new MemoryCache(), // default; any Cache works
+  ttl: 60_000,                // default TTL in ms
+  enabled: true,              // master switch
+  keyPrefix: "axis",          // key namespace
+});
+
+await cache.set(query, result);          // store with default TTL
+await cache.set(query, result, 5_000);   // …or override per call
+await cache.get(query);                  // hit value or undefined
+await cache.delete(query);               // forget one exact query
+await cache.invalidateModel("PurchaseRequisitions"); // forget one model
+await cache.clear();                     // forget everything
+await cache.stats();                     // { hits, misses, sets, deletes, … }
+cache.resetStats();                      // zero counters, keep entries
+await cache.close();                     // release owned backend resources</code></pre>
+      <table>
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>What it does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>keyFor(query)</code></td>
+            <td>Deterministic key via <code>buildCacheKey</code> with the manager's prefix. Same query → same key, always.</td>
+          </tr>
+          <tr>
+            <td><code>get(query)</code></td>
+            <td>Hit value or <code>undefined</code>. Counts a hit or miss. Backend failures, corrupt entries, and unbuildable keys all degrade to a miss.</td>
+          </tr>
+          <tr>
+            <td><code>set(query, value, ttl?)</code></td>
+            <td>Stores with per-call TTL or the manager default. Tracks the key under its model for later invalidation. Never throws.</td>
+          </tr>
+          <tr>
+            <td><code>delete(query)</code></td>
+            <td>Removes one exact query's entry and untracks it. Counts a delete. Never throws.</td>
+          </tr>
+          <tr>
+            <td><code>invalidateModel(model)</code></td>
+            <td>Deletes every tracked key for one model; returns the removal count. The targeted alternative to <code>clear()</code>.</td>
+          </tr>
+          <tr>
+            <td><code>clear()</code></td>
+            <td>Drops everything and forgets all tracked keys across all models.</td>
+          </tr>
+          <tr>
+            <td><code>stats()</code> / <code>resetStats()</code></td>
+            <td>Snapshot of counters (+ backend info when reported) / zero counters without touching entries.</td>
+          </tr>
+          <tr>
+            <td><code>close()</code></td>
+            <td>Closes the backend only if the manager created it — an injected backend stays the caller's own.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Two guarantees worth knowing</h3>
+      <ul>
+        <li><strong>Callers can never poison the cache by mutation.</strong> Values are deep-copied (<code>structuredClone</code>, with a reference fallback) on both store and hit. Mutating the object you passed to <code>set</code>, or the object a hit returned, cannot corrupt later reads. Remote backends already isolate via JSON serialization; the copy keeps in-process backends to the same contract.</li>
+        <li><strong>Disabled means untouched.</strong> With <code>enabled: false</code>, every method is a silent no-op — <code>get</code> always misses, nothing reaches the backend, and no counters move. Useful for kill-switches and tests.</li>
+      </ul>
+    </section>
+
+    <!-- Section 7: TTL -->
+    <section id="ttl" class="section-divider">
+      <h2>7. TTL: how long entries live</h2>
+      <p>Every TTL in Axis is <strong>milliseconds</strong>. Three levels decide an entry's lifetime, highest precedence first:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Level</th>
+            <th>Where</th>
+            <th>Default</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Per-query <code>cacheTtl</code></td>
+            <td>On the query itself: <code>{ model, metrics, cacheTtl: 5_000 }</code>. Validated like any other field, carried through the engine into <code>manager.set</code>.</td>
+            <td>— (falls through)</td>
+          </tr>
+          <tr>
+            <td>Manager default</td>
+            <td><code>new CacheManager({ ttl })</code> or <code>new Axis({ cache: { ttl } })</code>.</td>
+            <td><code>60_000</code> (1 minute)</td>
+          </tr>
+          <tr>
+            <td>No expiry</td>
+            <td>Omit TTL at every level (manager default can only be omitted via a custom manager path).</td>
+            <td>Entries live until evicted or invalidated</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Validation is strict everywhere: negative, <code>NaN</code>, or infinite TTLs throw <code>RangeError</code> instead of storing instantly-dead entries. <code>ttl: 0</code> means "already expired" — <code>MemoryCache</code> expires it on next read, while <code>ValkeyCache</code> skips the write entirely (Valkey rejects <code>PX 0</code>).</p>
+      <blockquote>
+        <strong>How to think about TTLs:</strong> dashboard aggregates refresh every minute or so — a 30–60s TTL absorbs repeated polls while staying fresh. Slowly-changing dimensions can use minutes; per-query <code>cacheTtl</code> covers the exceptions (a rarely-changing report at 10 minutes, a live counter at 5 seconds).
+      </blockquote>
+    </section>
+
+    <!-- Section 8: Stats -->
+    <section id="stats" class="section-divider">
+      <h2>8. Statistics: observing the cache</h2>
+      <p><code>await cache.stats()</code> returns a snapshot shaped like this:</p>
+      <pre><code class="json">{
+  "hits": 120,      // served from cache
+  "misses": 35,     // fell through to Postgres (incl. backend failures)
+  "sets": 35,       // entries written
+  "deletes": 7,     // single deletes + invalidated entries
+  "entries": 28,    // currently held — only if the backend reports it
+  "evictions": 7    // capacity-driven removals — only if reported
+}</code></pre>
+      <ul>
+        <li><strong>Hits/misses/sets/deletes</strong> are owned by the manager and always present. A useful derived metric is the hit ratio: <code>hits / (hits + misses)</code>.</li>
+        <li><strong>Entries/evictions</strong> are merged from <code>backend.describe()</code> when available. <code>MemoryCache</code> reports both; <code>ValkeyCache</code> reports neither (counting would require a full keyspace scan — unknown beats expensive).</li>
+        <li><code>stats()</code> itself never throws, even against a dead backend.</li>
+        <li><code>resetStats()</code> zeroes the four counters; entries are untouched.</li>
+      </ul>
+    </section>
+
+    <!-- Section 9: Invalidation -->
+    <section id="invalidation" class="section-divider">
+      <h2>9. Invalidation: forgetting on purpose</h2>
+      <p>TTL bounds staleness, but when underlying data changes you want fresh answers <em>now</em>. Because the key format embeds the model (<code>axis:&lt;Model&gt;:&lt;digest&gt;</code>), the manager tracks which keys belong to which model and can forget exactly one dataset:</p>
+      <pre><code class="typescript">// After an INSERT / UPDATE / DELETE affecting requisitions:
+const removed = await axis.invalidateModel("PurchaseRequisitions");
+console.log(`dropped ${removed} cached quer${removed === 1 ? "y" : "ies"}`);</code></pre>
+      <table>
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>Scope</th>
+            <th>Use when</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>invalidateModel(model)</code></td>
+            <td>Every cached query for one model; returns the removal count.</td>
+            <td>A write path touched that model's data. Precise, cheap, safe to call often.</td>
+          </tr>
+          <tr>
+            <td><code>delete(query)</code></td>
+            <td>One exact query.</td>
+            <td>You know the single entry that changed (rare; usually prefer the model call).</td>
+          </tr>
+          <tr>
+            <td><code>clear()</code></td>
+            <td>Everything, all models.</td>
+            <td>Schema/model-definition changes, or a big-bang reset. Blunt — expect a thundering herd of misses after.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>The per-model index lives in the manager (a <code>Map&lt;model, Set&lt;key&gt;&gt;</code>), so invalidation works uniformly across backends — including remote ones where scanning for keys would be expensive. Stale index entries are harmless: deleting an already-evicted or expired key is a no-op.</p>
+    </section>
+
+    <!-- Section 10: Engine -->
+    <section id="engine" class="section-divider">
+      <h2>10. Engine integration: where caching hooks in</h2>
+      <p><code>AxisQueryEngine</code> accepts an optional third constructor argument — a <code>CacheManager</code>. The pipeline from <a href="#workflow">Section&nbsp;1</a> in code:</p>
+      <pre><code class="typescript">// 1. Validate → 2. AST → 3/4. Resolve (errors throw here, uncached)
+// 5. Cache lookup (skipped entirely when no manager is wired)
+if (this.cache !== undefined) {
+  const cached = await this.cache.get&lt;QueryResult&lt;T&gt;&gt;(query);
+  if (cached !== undefined) return cached; // HIT
+}
+// 6. Compile → 7. Execute → 8. Store (per-query cacheTtl wins)
+const result = await this.executor.execute&lt;T&gt;(compiled);
+if (this.cache !== undefined) {
+  await this.cache.set(query, result, query.cacheTtl);
+}
+return result;</code></pre>
+      <p>Consequences of hooking in <em>after</em> resolution:</p>
+      <ul>
+        <li><strong>Errors are never cached.</strong> Validation, resolution, compilation, and execution failures all throw before any store. Retries always reach Postgres.</li>
+        <li><strong>Behavior without a manager is identical.</strong> Omit <code>cache</code> from <code>AxisConfig</code> and the two conditionals vanish — zero overhead, zero behavior change. Caching is opt-in, not a tax.</li>
+        <li><strong>Cache misses can't change error semantics.</strong> Whether the backend is warm, cold, or on fire, the same queries succeed and the same bad queries fail the same way.</li>
+      </ul>
+    </section>
+
+    <!-- Section 11: Valkey -->
+    <section id="valkey" class="section-divider">
+      <h2>11. ValkeyCache (production backend)</h2>
+      <p>One shared, out-of-process store for every app instance, speaking the Redis protocol via <code>ioredis</code> (<code>^6.0.0</code>). Drop it in wherever a <code>Cache</code> goes — the manager and engine can't tell the difference:</p>
+      <pre><code class="typescript">import { ValkeyCache } from "axis";
+
+const backend = new ValkeyCache({
+  url: "valkey://localhost:6379", // ignored when `client` is given
+  client: existingRedis,           // optional: shared/injected client
+  clearMatch: "axis:*",            // SCAN pattern for clear()
+  scanCount: 100,                  // SCAN page-size hint
+});</code></pre>
+      <table>
+        <thead>
+          <tr>
+            <th>Concern</th>
+            <th>How ValkeyCache handles it</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Serialization</td>
+            <td>Values are JSON-encoded. A corrupt entry is treated as a miss and reaped best-effort. Unserializable values throw <code>TypeError</code> instead of writing garbage.</td>
+          </tr>
+          <tr>
+            <td>TTL precision</td>
+            <td>Stored via <code>SET … PX &lt;ms&gt;</code> — exact milliseconds, no seconds rounding. <code>ttl: 0</code> skips the write (Valkey rejects <code>PX 0</code>).</td>
+          </tr>
+          <tr>
+            <td>Safe <code>clear()</code></td>
+            <td>Iterates <code>SCAN MATCH &lt;clearMatch&gt; COUNT n</code> and removes pages with non-blocking <code>UNLINK</code>. Never <code>FLUSHDB</code> — a shared instance's foreign keys (sessions, queues) are untouched.</td>
+          </tr>
+          <tr>
+            <td>Ownership</td>
+            <td><code>close()</code> disconnects (<code>quit()</code>) only a client the adapter created. An injected client is never closed — it stays the caller's own. Same rule as the manager.</td>
+          </tr>
+          <tr>
+            <td>Testability</td>
+            <td>The constructor accepts a minimal <code>ValkeyClient</code> command surface, so tests inject an in-memory fake — no live server needed. <code>ioredis.Redis</code> satisfies it structurally.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Production checklist</h3>
+      <ul>
+        <li><strong>Share one Valkey across instances</strong> with a common <code>clearMatch</code> (default <code>axis:*</code>), or scope per environment (<code>axis:prod:*</code>) to avoid cross-env wipes.</li>
+        <li><strong>Size Valkey memory</strong> for <code>entries × average result</code> plus headroom; set a Valkey-side <code>maxmemory-policy</code> (e.g. <code>volatile-lru</code>) as a backstop.</li>
+        <li><strong>Remember fail-open:</strong> if Valkey goes down, queries slow down but keep answering. Alert on the manager's miss rate, not on the outage itself.</li>
+        <li><strong>Call <code>close()</code> on shutdown</strong> (<code>Axis.close()</code> already closes manager-owned backends) so the process exits cleanly.</li>
+      </ul>
+    </section>
+
+    <!-- Section 12: Config -->
+    <section id="config" class="section-divider">
+      <h2>12. Configuration reference</h2>
+      <p>Everything funnels through <code>CacheConfig</code> on the <code>Axis</code> constructor:</p>
+      <pre><code class="typescript">new Axis({
+  database: { url: process.env.DATABASE_URL },
+  registry,
+  cache: {
+    enabled: true,   // master switch (default true once `cache` is given)
+    ttl: 60_000,      // default TTL in ms (default 60_000)
+    backend: new ValkeyCache({ url: process.env.VALKEY_URL }), // default MemoryCache
+    manager: customManager, // optional: take full control, skips backend/ttl construction
+  },
+});</code></pre>
+      <table>
+        <thead>
+          <tr>
+            <th>Option</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>enabled</code></td>
+            <td><code>boolean</code></td>
+            <td><code>true</code></td>
+            <td>Master switch. <code>false</code> disables all caching without removing the wiring.</td>
+          </tr>
+          <tr>
+            <td><code>ttl</code></td>
+            <td><code>number</code> (ms)</td>
+            <td><code>60_000</code></td>
+            <td>Default entry lifetime. Overridable per query via <code>cacheTtl</code>; per <code>set()</code> call via its <code>ttl</code> argument.</td>
+          </tr>
+          <tr>
+            <td><code>backend</code></td>
+            <td><code>Cache</code></td>
+            <td><code>new MemoryCache()</code></td>
+            <td>Storage. Ignored when <code>manager</code> is given.</td>
+          </tr>
+          <tr>
+            <td><code>manager</code></td>
+            <td><code>CacheManager</code></td>
+            <td>—</td>
+            <td>Fully-built manager (custom prefix, backend, TTL). Used as-is.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Recipes</h3>
+      <p><strong>Local development</strong> — in-process cache, short TTL, no infrastructure:</p>
+      <pre><code class="typescript">new Axis({
+  database: { url: process.env.DATABASE_URL },
+  registry,
+  cache: { enabled: true, ttl: 30_000 },
+});</code></pre>
+      <p><strong>Production</strong> — shared Valkey, per-environment namespace:</p>
+      <pre><code class="typescript">import { Axis, CacheManager, ValkeyCache } from "axis";
+
+const cacheManager = new CacheManager({
+  backend: new ValkeyCache({ url: process.env.VALKEY_URL }),
+  ttl: 60_000,
+  keyPrefix: `axis:${process.env.NODE_ENV ?? "dev"}`,
+});
+
+const axis = new Axis({ database: { url: process.env.DATABASE_URL }, registry, cache: { manager: cacheManager } });
+
+// Observability + freshness hooks:
+console.log(await axis.cache?.stats());
+await axis.invalidateModel("PurchaseRequisitions"); // after a write</code></pre>
+      <p><strong>Per-query freshness</strong> — one hot dashboard stays live, everything else relaxed:</p>
+      <pre><code class="json">{
+  "model": "PurchaseRequisitions",
+  "metrics": ["pendingCount"],
+  "cacheTtl": 5_000
+}</code></pre>
+    </section>
+
+    <!-- Section 13: Middleware -->
+    <section id="middleware" class="section-divider">
+      <h2>13. Wiring it into the middleware</h2>
+      <p>The middleware builds its client in <code>src/app.ts</code> (<code>createApp</code>) — today without caching:</p>
+      <pre><code class="typescript">const axis = new Axis({ database: { url: databaseUrl }, registry });</code></pre>
+      <p>Enabling cache is a two-line change plus environment. First extend <code>src/config.ts</code> with the existing helpers:</p>
+      <pre><code class="typescript">export const config = {
+  port: optionalInt("PORT", 3000),
+  databaseUrl: required("DATABASE_URL", "postgres://localhost:5432/postgres"),
+  defaultLimit: optionalInt("AXIS_DEFAULT_LIMIT", 100),
+  cacheEnabled: process.env.CACHE_ENABLED !== "false", // default on
+  cacheTtlMs: optionalInt("CACHE_TTL_MS", 60_000),
+  valkeyUrl: process.env.VALKEY_URL ?? "",             // empty → MemoryCache
+} as const;</code></pre>
+      <p>Then pass a <code>cache</code> block where the client is constructed:</p>
+      <pre><code class="typescript">import { Axis, ModelRegistry, ValkeyCache, MemoryCache } from "axis";
+
+const axis = new Axis({
+  database: { url: databaseUrl },
+  registry,
+  cache: {
+    enabled: config.cacheEnabled,
+    ttl: config.cacheTtlMs,
+    backend: config.valkeyUrl
+      ? new ValkeyCache({ url: config.valkeyUrl })
+      : new MemoryCache(),
+  },
+});</code></pre>
+      <p>With that in place, <code>POST /query</code> responses are cached transparently — no endpoint changes. Two optional follow-ups complete the story:</p>
+      <ul>
+        <li><strong>Observability:</strong> expose <code>GET /cache/stats</code> returning <code>await axis.cache?.stats()</code> so dashboards can chart hit ratio.</li>
+        <li><strong>Freshness:</strong> after any write path, call <code>await axis.invalidateModel("&lt;Model&gt;")</code>; for schema-level resets, <code>await axis.cache?.clear()</code>.</li>
+      </ul>
+      <blockquote>
+        <strong>Env summary:</strong> <code>CACHE_ENABLED</code> (<code>"false"</code> disables; default on), <code>CACHE_TTL_MS</code> (default <code>60000</code>), <code>VALKEY_URL</code> (unset → in-process <code>MemoryCache</code>). Keep all TTLs in milliseconds, everywhere.
+      </blockquote>
+    </section>
+
+    <!-- Section 14: FAQ -->
+    <section id="faq" class="section-divider">
+      <h2>14. FAQ</h2>
+
+      <h3>Will caching ever return a wrong answer?</h3>
+      <p>No — by construction. Keys are deterministic over the full normalized query (different questions → different keys), only successful results are stored, and TTL plus invalidation bound staleness. A bug in the cache layer can only cause extra misses (slower), never wrong hits.</p>
+
+      <h3>What happens when Valkey is down?</h3>
+      <p>Queries keep working. Reads degrade to misses, writes are skipped, invalidation counts zero — all silently. Watch the manager's miss rate to notice; the outage itself needs no emergency handling in the query path.</p>
+
+      <h3>Why isn't the cache consulted before validation?</h3>
+      <p>Because invalid queries must fail identically with caching on or off, and their failures must never populate the cache. Resolving first also guarantees the model segment of the key refers to a real model.</p>
+
+      <h3>Two app instances + MemoryCache — problem?</h3>
+      <p>Not a correctness problem (each instance just builds its own cache), but a hit-rate problem: identical queries miss once per instance. Share a <code>ValkeyCache</code> when you scale horizontally.</p>
+
+      <h3>Why do identical queries with different TTLs share an entry?</h3>
+      <p>TTL describes freshness policy, not content. The first write wins the entry's lifetime; a later <code>set</code> for the same key refreshes value and expiry together. If you need isolation by freshness, use different key prefixes (separate managers).</p>
+
+      <h3>Does <code>clear()</code> affect other apps on shared Valkey?</h3>
+      <p>No. It SCANs only <code>clearMatch</code> (default <code>axis:*</code>) and unlinks those keys. Foreign keyspaces are never touched — there is deliberately no <code>FLUSHDB</code> anywhere in the codebase.</p>
+
+      <h3>Where are the tests?</h3>
+      <p><code>tests/cache/</code> in the <code>axis</code> package: key generation (<code>cache-key-generator.test.ts</code>), manager behavior (<code>cache-manager.test.ts</code>), local backend (<code>memory-cache.test.ts</code>), engine integration with a fake database (<code>query-engine-cache.test.ts</code>), and the Valkey adapter against an in-memory client fake (<code>valkey-cache.test.ts</code>) — no live Valkey needed to verify behavior.</p>
+    </section>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding-top: 40px; border-top: 1px solid var(--border-color); margin-top: 60px; color: var(--text-secondary);">
+      <p><small>Companion to <a href="./documentation.html">Axis Documentation</a> — same theme, same structure. Covers the implementation in <code>src/core/cache/</code>, the engine hook, and Valkey operations.</small></p>
+    </footer>
+  </div>
+
+  <script>
+    // Lightweight editor-style syntax highlighting (no dependencies).
+    // Colors mimic VS Code Dark+: keywords purple, strings orange,
+    // numbers green, comments grey-green, functions yellow, vars blue.
+    (function () {
+      function esc(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+      function span(cls, s) {
+        return '<span class="' + cls + '">' + esc(s) + "</span>";
+      }
+
+      var JS_KEYWORDS = /^(const|let|var|import|from|export|return|await|async|function|new|if|throw|typeof|in|of)$/;
+      var JS_TYPES = /^(string|number|boolean|null|true|false)$/;
+
+      function highlightJS(src) {
+        var re = /(\/\/[^\n]*|#[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(\d+(?:\.\d+)?)\b|\b([A-Za-z_$][\w$]*)\b|(\s+|.)/g;
+        var out = "", m;
+        while ((m = re.exec(src))) {
+          var comment = m[1], str = m[2], num = m[3], word = m[4], other = m[5];
+          if (comment !== undefined) out += span("tok-c", comment);
+          else if (str !== undefined) out += span("tok-s", str);
+          else if (num !== undefined) out += span("tok-n", num);
+          else if (word !== undefined) {
+            if (JS_KEYWORDS.test(word)) out += span("tok-k", word);
+            else if (/^(true|false|null|undefined)$/.test(word)) out += span("tok-b", word);
+            else {
+              var rest = src.slice(re.lastIndex);
+              if (/^\s*\(/.test(rest)) out += span("tok-f", word);
+              else if (/^\s*:/.test(rest)) out += span("tok-p", word);
+              else out += span("tok-p", word);
+            }
+          }
+          else out += esc(other);
+        }
+        return out;
+      }
+
+      function highlightJSON(src) {
+        var re = /(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\b\d+(?:\.\d+)?\b)|(\s+|.)/g;
+        var out = "", m;
+        while ((m = re.exec(src))) {
+          var comment = m[1], str = m[2], colon = m[3], bool = m[4], num = m[5], other = m[6];
+          if (comment !== undefined) out += span("tok-c", comment);
+          else if (str !== undefined) {
+            out += colon !== undefined
+              ? span("tok-p", str) + esc(colon)
+              : span("tok-s", str);
+          }
+          else if (bool !== undefined) out += span("tok-b", bool);
+          else if (num !== undefined) out += span("tok-n", num);
+          else out += esc(other);
+        }
+        return out;
+      }
+
+      function highlightBash(src) {
+        var lines = src.split("\n"), html = [];
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (/^\s*(#.*)?$/.test(line)) {
+            html.push(line.trim().startsWith("#") ? span("tok-c", line) : esc(line));
+            continue;
+          }
+          var re = /(#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(--[A-Za-z][\w-]*|-[A-Za-z]+)|\b(\d+)\b|\b(curl|npm|node|npx|fetch)\b|(\s+|\S+)/g;
+          var out = "", m;
+          while ((m = re.exec(line))) {
+            if (m[1] !== undefined) out += span("tok-c", m[1]);
+            else if (m[2] !== undefined) out += span("tok-s", m[2]);
+            else if (m[3] !== undefined) out += span("tok-flag", m[3]);
+            else if (m[4] !== undefined) out += span("tok-n", m[4]);
+            else if (m[5] !== undefined) out += span("tok-cmd", m[5]);
+            else out += esc(m[6]);
+          }
+          html.push(out);
+        }
+        return html.join("\n");
+      }
+
+      function highlightTS(src) {
+        // TypeScript = JS highlighting + type names in teal.
+        var html = highlightJS(src);
+        return html.replace(
+          /<span class="tok-p">([A-Z][A-Za-z0-9_]*)<\/span>/g,
+          '<span class="tok-t">$1</span>'
+        );
+      }
+
+      document.querySelectorAll("pre code").forEach(function (el) {
+        var lang = (el.className || "").toLowerCase();
+        var src = el.textContent;
+        if (lang.indexOf("typescript") >= 0 || lang.indexOf(" ts") >= 0) el.innerHTML = highlightTS(src);
+        else if (lang.indexOf("javascript") >= 0 || lang.indexOf(" js") >= 0) el.innerHTML = highlightJS(src);
+        else if (lang.indexOf("json") >= 0) el.innerHTML = highlightJSON(src);
+        else el.innerHTML = highlightBash(src); // bash / curl blocks
+      });
+    })();
+  </script>
+</body>
+</html>

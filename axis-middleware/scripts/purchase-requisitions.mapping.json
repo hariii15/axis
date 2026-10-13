@@ -1,0 +1,21 @@
+
+{
+  "comment": "Canonical OpenSearch mapping for the purchase-requisitions index. Recreate with: DELETE the index, then PUT this body. Do NOT let dynamic mapping infer security/filter fields (term queries need keyword).",
+  "settings": {
+    "index.knn": true
+  },
+  "mappings": {
+    "properties": {
+      "id": { "type": "keyword" },
+      "status": { "type": "long" },
+      "amount": { "type": "double" },
+      "department": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "createdBy": { "type": "keyword" },
+      "createdAt": { "type": "date" },
+      "tenant_id": { "type": "keyword" },
+      "created_by": { "type": "keyword" },
+      "searchable_text": { "type": "text" },
+      "embedding": { "type": "knn_vector", "dimension": 384 }
+    }
+  }
+}

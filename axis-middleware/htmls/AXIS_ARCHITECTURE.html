@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AXIS — System Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: "dark",
+  flowchart: { htmlLabels: true, curve: "basis", nodeSpacing: 55, rankSpacing: 70 }
+});
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+ --bg:#080808;--panel:#101010;--panel2:#151515;--text:#f4f4f5;
+ --muted:#a7a7ad;--accent:#ec4899;--border:#292929;
+ --green:#7dd3a7;--blue:#8bb8ff;--amber:#f2c66d
+}
+body{background:var(--bg);color:var(--text);font-family:Poppins,sans-serif;line-height:1.7}
+.container{max-width:1180px;margin:auto;padding:52px 32px 80px}
+header{text-align:center;padding-bottom:42px;border-bottom:1px solid var(--border);margin-bottom:45px}
+header h1{font-size:44px;letter-spacing:-1px;margin-bottom:8px}
+header p{color:var(--muted);font-size:17px}
+h2{font-size:27px;color:var(--accent);margin:48px 0 18px}
+h3{font-size:19px;margin:30px 0 10px}
+p{color:var(--muted);margin-bottom:17px}
+.mermaid{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:28px;overflow:auto}
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px}
+.card h3{margin-top:0;color:var(--text)}
+.card p{font-size:14px;margin-bottom:0}
+table{width:100%;border-collapse:collapse;margin:20px 0 30px;background:var(--panel)}
+th,td{border:1px solid var(--border);padding:13px 15px;text-align:left}
+th{color:var(--text);font-weight:600}
+td{color:var(--muted)}
+code{font-family:"JetBrains Mono",monospace;background:var(--panel2);padding:2px 6px;border-radius:4px;color:#ddd}
+.path{font-family:"JetBrains Mono",monospace;background:var(--panel);border:1px solid var(--border);padding:18px;border-radius:8px;color:var(--text);margin:12px 0 20px}
+ol,ul{margin:0 0 20px 25px;color:var(--muted)}
+li{margin-bottom:8px}
+@media(max-width:850px){.card-grid{grid-template-columns:1fr}.container{padding:30px 18px}header h1{font-size:32px}}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>AXIS — SYSTEM ARCHITECTURE</h1>
+<p>Semantic query layer, search infrastructure, synchronization and static data</p>
+</header>
+
+<section>
+<div class="mermaid">
+flowchart LR
+    FE["Frontend / Client"]
+
+    subgraph MID["axis-middleware"]
+        HTTP["HTTP routes"]
+        AUTH["JWT / request context"]
+        MODELS["Model definitions"]
+    end
+
+    subgraph AXIS["axis library"]
+        VALID["Query validation"]
+        AST["AST / query representation"]
+        RESOLVE["Model & field resolution"]
+        PLAN["Query planner"]
+        CACHE["Cache manager"]
+        SQL["SQL compiler"]
+        OS["OpenSearch compiler"]
+        EMB["Embedding provider"]
+        ADAPTER["OpenSearch adapter"]
+        NORM["Result normalization"]
+        INDEX["Indexing / document preparation"]
+    end
+
+    PG[("PostgreSQL")]
+    S3[("S3")]
+    CRON["Cron / background sync"]
+    E[["Embedding service<br/>Docker container"]]
+    SEARCH[["OpenSearch<br/>Docker / cluster"]]
+
+    FE --> HTTP
+    HTTP --> AUTH
+    HTTP --> MODELS
+    HTTP --> VALID
+    VALID --> AST --> RESOLVE --> PLAN
+    PLAN --> CACHE
+    CACHE -->|"cache hit"| NORM
+    PLAN --> OS
+    OS --> ADAPTER --> SEARCH
+    PLAN --> EMB --> E
+    ADAPTER --> NORM
+    NORM --> HTTP
+    CRON --> SQL
+    SQL --> PG
+    PG --> INDEX
+    INDEX --> EMB
+    INDEX --> SEARCH
+    MODELS --> RESOLVE
+    MODELS --> INDEX
+    S3 -->|"static / precomputed data"| NORM
+</div>
+</section>
+
+<section>
+<h2>Architecture intent</h2>
+<p>Axis sits between the application middleware and the data infrastructure. The middleware is responsible for HTTP and identity, while Axis owns the semantic interpretation of a request and decides how that request should be fulfilled.</p>
+<p>The architecture intentionally separates the user-facing read path from background synchronization. OpenSearch is the optimized search representation, PostgreSQL remains the transactional source of truth, S3 holds static or precomputed aggregates, and the embedding service converts searchable text into vectors.</p>
+</section>
+
+<section>
+<h2>Core components</h2>
+<div class="card-grid">
+<div class="card"><h3>Middleware</h3><p>HTTP routing, authentication, request context and application wiring. It does not construct backend-specific queries.</p></div>
+<div class="card"><h3>Axis</h3><p>Semantic layer containing models, query interpretation, planning, caching, backend compilers, indexing and normalization.</p></div>
+<div class="card"><h3>Query Planner</h3><p>Chooses the appropriate execution path after the request has been validated and resolved.</p></div>
+<div class="card"><h3>OpenSearch</h3><p>Read-optimized store for documents, filters, aggregations and vector similarity search.</p></div>
+<div class="card"><h3>Embedding Service</h3><p>Converts text into vectors. It can use Hugging Face, a local model or another configured provider.</p></div>
+<div class="card"><h3>PostgreSQL</h3><p>Transactional source of truth. Its data feeds the search index through background synchronization.</p></div>
+<div class="card"><h3>S3</h3><p>Stores static or precomputed aggregate data that can be returned without rebuilding the aggregation.</p></div>
+<div class="card"><h3>Cache</h3><p>Existing performance layer. It remains independent from OpenSearch and can short-circuit repeated queries.</p></div>
+<div class="card"><h3>Cron</h3><p>Runs background synchronization so changed source records are reflected in OpenSearch.</p></div>
+</div>
+</section>
+
+<section>
+<h2>Two operating paths</h2>
+<h3>User read path</h3>
+<div class="path">Frontend → Middleware → Axis → Query Planner → Cache / OpenSearch / Embedding → Response</div>
+<p>This path is optimized for request latency. Existing indexed documents are read directly from OpenSearch. For semantic search, only the user's query needs to be converted into an embedding before the vector search is executed.</p>
+
+<h3>Background synchronization path</h3>
+<div class="path">Cron → Axis SQL pipeline → PostgreSQL → Document preparation → Embedding → OpenSearch</div>
+<p>This path keeps the search representation synchronized with the source database. It is deliberately outside the normal user request path so indexing and embedding work do not become part of every dashboard request.</p>
+</section>
+
+<section>
+<h2>Responsibilities</h2>
+<table>
+<tr><th>Component</th><th>Primary responsibility</th></tr>
+<tr><td>PostgreSQL</td><td>Transactional source of truth</td></tr>
+<tr><td>OpenSearch</td><td>Search and read-optimized document store</td></tr>
+<tr><td>Embedding service</td><td>Text-to-vector conversion</td></tr>
+<tr><td>S3</td><td>Static and precomputed aggregate storage</td></tr>
+<tr><td>Cache</td><td>Acceleration of repeated queries</td></tr>
+<tr><td>Axis</td><td>Semantic query layer and backend coordination</td></tr>
+<tr><td>Middleware</td><td>HTTP, authentication and application wiring</td></tr>
+<tr><td>Cron</td><td>Periodic source-to-search synchronization</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Architectural decisions</h2>
+<ul>
+<li><strong>Axis owns backend query translation.</strong> Middleware does not build SQL or OpenSearch queries.</li>
+<li><strong>OpenSearch is integrated into Axis.</strong> It is an infrastructure dependency behind Axis configuration and adapters.</li>
+<li><strong>SQL remains in Axis.</strong> It is primarily used for background synchronization and source-data operations.</li>
+<li><strong>Semantic search does not require an LLM.</strong> An embedding model is sufficient for vector generation.</li>
+<li><strong>Document embeddings are generated during synchronization where possible.</strong> Normal semantic requests only need to embed the user's query.</li>
+<li><strong>PostgreSQL remains authoritative.</strong> OpenSearch is the search representation, not the transactional source of truth.</li>
+<li><strong>S3 is for static/precomputed data.</strong> It is not used as the general transactional data store.</li>
+<li><strong>Caching remains independent.</strong> OpenSearch does not replace the existing cache layer.</li>
+</ul>
+</section>
+</div>
+</body>
+</html>

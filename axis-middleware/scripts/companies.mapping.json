@@ -1,0 +1,28 @@
+
+{
+  "comment": "Canonical OpenSearch mapping for the companies index. Recreate with: DELETE the index, then PUT this body. All string axes are text+keyword because exact-match filters/sorts always target .keyword. Field names are AXIS names (transformer keys fields by axis name, not DB column). Vectors are backfilled later by scripts/index-companies.ts.",
+  "settings": {
+    "index.knn": true
+  },
+  "mappings": {
+    "properties": {
+      "id": { "type": "keyword" },
+      "companyName": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "pan": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "gst": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "cin": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "msme": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "msmeType": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "msmeClassification": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "turnover2324": { "type": "double" },
+      "turnover2425": { "type": "double" },
+      "turnover2526": { "type": "double" },
+      "contactName": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "contactNumber": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "email": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "tenant_id": { "type": "keyword" },
+      "searchable_text": { "type": "text" },
+      "embedding": { "type": "knn_vector", "dimension": 384 }
+    }
+  }
+}

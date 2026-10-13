@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axis System — README</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: "dark" });</script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --bg-primary: #000; --bg-secondary: #0a0a0a; --bg-tertiary: #161616;
+      --text-primary: #f5f7fa; --text-secondary: #cbd5e1;
+      --accent-pink: #ec4899; --accent-pink-light: #f472b6;
+      --border-color: #262626; --code-bg: #0a0a0a; --code-border: #262626; }
+    body { font-family: "Poppins", sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; font-size: 16px; }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+    header { text-align: center; margin-bottom: 60px; padding-bottom: 40px; border-bottom: 1px solid var(--border-color); }
+    header h1 { font-size: 48px; font-weight: 700; margin-bottom: 12px; background: linear-gradient(135deg, var(--accent-pink), var(--accent-pink-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    header p { font-size: 18px; color: var(--text-secondary); font-weight: 300; }
+    .toc { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 32px; margin-bottom: 60px; }
+    .toc h2 { color: var(--accent-pink); margin: 0 0 20px; font-size: 20px; }
+    .toc ol { list-style: none; counter-reset: item; margin: 0; }
+    .toc li { counter-increment: item; margin-bottom: 12px; padding-left: 8px; }
+    .toc li:before { content: counter(item) ". "; color: var(--accent-pink); font-weight: 600; }
+    .toc a { color: var(--text-secondary); text-decoration: none; } .toc a:hover { color: var(--accent-pink); }
+    h2 { font-size: 32px; font-weight: 700; margin: 48px 0 20px; color: var(--accent-pink); }
+    h3 { font-size: 24px; font-weight: 600; margin: 36px 0 16px; color: var(--text-primary); }
+    p { margin-bottom: 16px; color: var(--text-secondary); line-height: 1.8; }
+    a { color: var(--accent-pink); text-decoration: none; } a:hover { color: var(--accent-pink-light); text-decoration: underline; }
+    pre { background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 8px; padding: 20px; overflow-x: auto; margin: 24px 0; font-size: 14px; line-height: 1.6; }
+    code { font-family: "JetBrains Mono", monospace; color: #d4d4d4; }
+    p code, li code, td code { background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+    ul, ol { margin-left: 24px; margin-bottom: 16px; } li { margin-bottom: 12px; color: var(--text-secondary); line-height: 1.8; } li strong { color: var(--text-primary); }
+    table { width: 100%; border-collapse: collapse; margin: 32px 0; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+    table th { background: var(--bg-tertiary); padding: 16px; text-align: left; font-weight: 600; color: var(--accent-pink); border-bottom: 2px solid var(--border-color); }
+    table td { padding: 16px; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); }
+    blockquote { border-left: 4px solid var(--accent-pink); background: rgba(236,72,153,0.05); padding: 16px 20px; margin: 24px 0; border-radius: 4px; color: var(--text-secondary); }
+    blockquote strong { color: var(--text-primary); }
+    section { margin-bottom: 48px; }
+    pre.mermaid { background: var(--bg-secondary); text-align: center; }
+    @media (max-width: 768px) { .container { padding: 24px 16px; } header h1 { font-size: 36px; } h2 { font-size: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header><h1>Axis System</h1><p>Governed analytics over PostgreSQL, served from OpenSearch, explored from the browser</p></header>
+    <div class="toc"><h2>Table of Contents</h2><ol>
+      <li><a href="#s1">System map</a></li><li><a href="#s2">The three packages</a></li>
+      <li><a href="#s3">Prerequisites</a></li><li><a href="#s4">Build / run / test</a></li>
+      <li><a href="#s5">API contracts</a></li><li><a href="#s6">The model</a></li><li><a href="#s7">Companion docs</a></li>
+    </ol></div>
+    <section id="s1"><h2>1. System map</h2>
+      <pre class="mermaid">flowchart LR
+    U["User / Postman"] --&gt; M["axis-middleware&lt;br/&gt;Express :3000"]
+    U --&gt; P["axis-playground&lt;br/&gt;Next.js :3001"]
+    P --&gt; M
+    M --&gt; A["axis library&lt;br/&gt;semantic layer"]
+    A --&gt; PG[("PostgreSQL&lt;br/&gt;database po")]
+    A --&gt; OS[("OpenSearch&lt;br/&gt;index purchase-requisitions")]
+    A --&gt; EM["Embeddings&lt;br/&gt;MiniLM 384-dim"]</pre>
+      <blockquote><strong>Direction:</strong> clients send JSON DSL, never SQL. HTTP reads hit OpenSearch only.</blockquote>
+    </section>
+    <section id="s2"><h2>2. The three packages</h2>
+      <table><tr><th>Folder</th><th>What it is</th><th>Port</th><th>Role</th></tr>
+      <tr><td><code>axis/</code></td><td>TypeScript library</td><td>—</td><td>Models, validation, AST, resolver, compilers, planner, indexer, security, cache, embeddings</td></tr>
+      <tr><td><code>axis-middleware/</code></td><td>Express API</td><td>3000</td><td>JWT auth, routes, DB/OS/embeddings wiring</td></tr>
+      <tr><td><code>axis-playground/</code></td><td>Next.js UI</td><td>3001</td><td>Models, query builder, raw JSON, auth panel, response viewer</td></tr></table>
+      <p>Dependency rule: playground → middleware → axis → infrastructure. The library never sees JWTs; the UI never sees SQL; the middleware never builds DSL.</p>
+    </section>
+    <section id="s3"><h2>3. Prerequisites</h2>
+      <p>Node 20+, PostgreSQL with <code>po</code>, OpenSearch + embeddings reachable. Middleware <code>.env</code>: <code>DATABASE_URL</code>, <code>AXIS_JWT_SECRET</code>, <code>OPENSEARCH_URL</code>, <code>EMBEDDING_URL / PROVIDER / MODEL / DIMENSIONS</code>.</p>
+    </section>
+    <section id="s4"><h2>4. Build / run / test</h2>
+      <pre><code>cd axis &amp;&amp; npm run build &amp;&amp; npm pack
+cd ../axis-middleware &amp;&amp; npm install file:../axis/axis-1.0.0.tgz
+npx tsx scripts/seed-po.ts
+npx vitest run tests/e2e-searchAndFilter.test.ts
+npm run build &amp;&amp; npm start
+cd ../axis-playground &amp;&amp; npm install &amp;&amp; npm run dev
+npm run test</code></pre>
+      <blockquote><strong>Stale <code>node_modules/axis</code></strong> (forgot pack + reinstall) is the #1 phantom-error source.</blockquote>
+    </section>
+    <section id="s5"><h2>5. API contracts</h2>
+      <table><tr><th>Endpoint</th><th>Auth</th><th>Purpose</th></tr>
+      <tr><td><code>GET /health</code></td><td>no</td><td><code>{ ok: true }</code></td></tr>
+      <tr><td><code>GET /models</code></td><td>no</td><td>models, axes, metrics</td></tr>
+      <tr><td><code>POST /search</code></td><td>yes</td><td>fulltext / semantic / hybrid, filters, aggs</td></tr>
+      <tr><td><code>GET /os/indices</code></td><td>no</td><td>per-model index + doc count</td></tr>
+      <tr><td><code>GET /os/docs/:model</code></td><td>yes</td><td>samples, vectors truncated, tenant-filtered</td></tr></table>
+      <p>Envelope: <code>{ data: { rows, rowCount }, meta: {...} }</code>. Errors: <code>400 · 401 · 422 · 503 · 502 · 404</code>. <code>POST /query/*</code> and <code>/cache/*</code> are removed (commented out).</p>
+    </section>
+    <section id="s6"><h2>6. The model</h2>
+      <p><code>PurchaseRequisitions</code> → <code>upeg.requisition_deails</code>. Axes <code>id, status, department, createdBy, amount, createdAt, hasAssignedBuyer</code>; metrics <code>newCount, pendingCount, assignedCount</code>; index <code>purchase-requisitions</code>.</p>
+      <blockquote><strong>Caveat:</strong> <code>hasAssignedBuyer</code> / <code>assignedCount</code> need <code>upeg.requisition_item</code>, absent from <code>po</code>.</blockquote>
+    </section>
+    <section id="s7"><h2>7. Companion docs</h2>
+      <ul><li><strong>WORKFLOW</strong> — data state at every stage</li><li><strong>ARCHITECTURE</strong> — components and decisions across all three folders</li><li><strong>OPENSEARCH</strong> — usage deep-dive</li><li><strong>ISSUES_AND_IMPROVEMENTS</strong> — flaws and opinions</li></ul>
+    </section>
+  </div>
+</body>
+</html>

@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axis Phase 8 — Authentication, Security Context &amp; RLS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #000000;
+      --bg-secondary: #0a0a0a;
+      --bg-tertiary: #161616;
+      --text-primary: #f5f7fa;
+      --text-secondary: #cbd5e1;
+      --accent-pink: #ec4899;
+      --accent-pink-light: #f472b6;
+      --border-color: #262626;
+      --code-bg: #0a0a0a;
+      --code-border: #262626;
+    }
+
+    body {
+      font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    header h1 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-pink-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      font-size: 18px;
+      color: var(--text-secondary);
+      font-weight: 300;
+    }
+
+    /* Table of Contents */
+    .toc {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 60px;
+    }
+
+    .toc h2 {
+      color: var(--accent-pink);
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    .toc ol {
+      list-style: none;
+      counter-reset: item;
+    }
+
+    .toc li {
+      counter-increment: item;
+      margin-bottom: 12px;
+      padding-left: 8px;
+    }
+
+    .toc li:before {
+      content: counter(item) ". ";
+      color: var(--accent-pink);
+      font-weight: 600;
+    }
+
+    .toc a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .toc a:hover {
+      color: var(--accent-pink);
+    }
+
+    /* Headings */
+    h1 {
+      font-size: 42px;
+      font-weight: 700;
+      margin: 60px 0 24px 0;
+      color: var(--accent-pink);
+      scroll-margin-top: 80px;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      margin: 48px 0 20px 0;
+      color: var(--accent-pink);
+      scroll-margin-top: 80px;
+    }
+
+    h3 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 36px 0 16px 0;
+      color: var(--text-primary);
+    }
+
+    h4 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 24px 0 12px 0;
+      color: var(--text-secondary);
+    }
+
+    /* Text blocks */
+    p {
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    p + p {
+      margin-top: 16px;
+    }
+
+    /* Links */
+    a {
+      color: var(--accent-pink);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    a:hover {
+      color: var(--accent-pink-light);
+      text-decoration: underline;
+    }
+
+    /* Code blocks */
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      margin: 24px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #d4d4d4;
+    }
+
+    pre code {
+      color: #d4d4d4;
+    }
+
+    pre code .tok-k { color: #c586c0; }  /* keyword: const, import, return */
+    pre code .tok-s { color: #ce9178; }  /* string */
+    pre code .tok-n { color: #b5cea8; }  /* number */
+    pre code .tok-c { color: #6a9955; font-style: italic; } /* comment */
+    pre code .tok-f { color: #dcdcaa; }  /* function / class name */
+    pre code .tok-p { color: #9cdcfe; }  /* property / variable */
+    pre code .tok-b { color: #569cd6; }  /* boolean / null */
+    pre code .tok-t { color: #4ec9b0; }  /* type */
+    pre code .tok-flag { color: #9cdcfe; } /* --flags, -X */
+    pre code .tok-cmd { color: #dcdcaa; font-weight: 600; } /* curl, npm */
+
+    /* Inline code */
+    p code, li code, td code, h3 code, h4 code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background-color: var(--bg-tertiary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    li strong {
+      color: var(--text-primary);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 32px 0;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    table th {
+      background-color: var(--bg-tertiary);
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--accent-pink);
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    table tr:last-child td {
+      border-bottom: none;
+    }
+
+    table tr:hover {
+      background-color: var(--bg-tertiary);
+    }
+
+    /* Blockquotes & Tips */
+    blockquote {
+      border-left: 4px solid var(--accent-pink);
+      background-color: rgba(236, 72, 153, 0.05);
+      padding: 16px 20px;
+      margin: 24px 0;
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    blockquote strong {
+      color: var(--text-primary);
+    }
+
+    /* Sections */
+    section {
+      margin-bottom: 48px;
+    }
+
+    /* Horizontal rule */
+    hr {
+      border: none;
+      height: 1px;
+      background-color: var(--border-color);
+      margin: 48px 0;
+    }
+
+    /* Flow diagram blocks */
+    .flow {
+      border: 1px solid var(--code-border);
+      border-left: 3px solid var(--accent-pink);
+      border-radius: 8px;
+      background-color: var(--code-bg);
+      padding: 20px 24px;
+      margin: 24px 0;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 14px;
+      line-height: 2;
+      color: var(--text-secondary);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .flow .hit {
+      color: #b5cea8;
+      font-weight: 600;
+    }
+
+    .flow .miss {
+      color: #f472b6;
+      font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 24px 16px;
+      }
+
+      header h1 {
+        font-size: 36px;
+      }
+
+      h2 {
+        font-size: 24px;
+      }
+
+      h3 {
+        font-size: 18px;
+      }
+
+      table {
+        font-size: 14px;
+      }
+
+      table th, table td {
+        padding: 12px;
+      }
+
+      pre {
+        font-size: 12px;
+        padding: 16px;
+      }
+    }
+
+    /* Utility classes */
+    .section-divider {
+      border-top: 1px solid var(--border-color);
+      margin: 60px 0;
+      padding-top: 40px;
+    }
+
+    .highlight {
+      color: var(--accent-pink);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>Axis Phase 8 — Auth &amp; RLS</h1>
+      <p>Authentication, security context, multi-tenancy and PostgreSQL row-level security</p>
+    </header>
+
+    <!-- Table of Contents -->
+    <nav class="toc">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#purpose">Purpose</a></li>
+        <li><a href="#pipeline">End-to-end pipeline</a></li>
+        <li><a href="#rules">Design rules</a></li>
+        <li><a href="#implemented">What was implemented</a></li>
+        <li><a href="#workflow">Request-level workflow</a></li>
+        <li><a href="#rls">PostgreSQL RLS setup</a></li>
+        <li><a href="#tests">Tests</a></li>
+        <li><a href="#ownership">Ownership split</a></li>
+        <li><a href="#api">Final API</a></li>
+      </ol>
+    </nav>
+
+    <!-- Section 1: Purpose -->
+    <section id="purpose" class="section-divider">
+      <h2>1. Purpose</h2>
+      <p>Phase 8 makes Axis completely application-agnostic for security. The library never knows JWT structure, claim names, tenant IDs, user IDs, column names, Express, or auth libraries.</p>
+      <ul>
+        <li><strong>The middleware/application owns authentication</strong> and converts identity into a generic <code>AxisContext</code>.</li>
+        <li><strong>Axis receives that context</strong> plus application-registered security mappings and establishes PostgreSQL session state before running SQL.</li>
+        <li><strong>PostgreSQL RLS enforces the actual row filtering.</strong></li>
+        <li><strong>Caching is security-aware</strong> so one tenant/user can never read another tenant/user's cached result.</li>
+      </ul>
+      <blockquote>
+        <strong>The golden rule:</strong> authentication happens in the middleware, authorization is enforced by Postgres. The library in the middle only translates — it never decides who anyone is.
+      </blockquote>
+    </section>
+
+    <!-- Section 2: Pipeline -->
+    <section id="pipeline" class="section-divider">
+      <h2>2. End-to-end pipeline</h2>
+      <p>Every protected <code>POST /query</code> follows this path:</p>
+      <div class="flow">HTTP Request
+  ↓
+Express middleware: Authorization: Bearer &lt;JWT&gt;
+  ↓
+verifyJwt(token, secret): signature + expiry + claims check
+  ↓
+createAxisContext(decodedJwt): JWT claims → generic AxisContext
+  ↓
+<span class="hit">axis.query(queryJson, { context })</span>
+  ↓
+Validate → AST → resolve model → resolveSecurityContext (fail-closed)
+  ↓
+Cache lookup with security-aware key (<span class="hit">HIT returns</span> / <span class="miss">MISS continues</span>)
+  ↓
+Compile → SQL
+  ↓
+Database.transaction: BEGIN → set_config (SET LOCAL) → SQL → COMMIT
+  ↓
+PostgreSQL RLS uses current_setting('app.tenant_id', true)
+  ↓
+Rows → cache store under security-aware key → QueryResult</div>
+      <h3>Architecture diagram</h3>
+      <div class="flow">                    HTTP Request
+                         |
+                    Express Middleware
+                    Authorization header
+                         |
+                      Verify JWT
+                         |
+                      Decode JWT
+                         |
+                    AxisContext { tenant, user, roles }
+                         |
+                    AxisQueryEngine.query + context
+                         |
+                    Security Resolver (context × mappings)
+                         |
+                    PostgreSQL Transaction
+                    BEGIN / SET LOCAL / query / COMMIT
+                         |
+                    PostgreSQL RLS (tenant_id / created_by = context)
+                         |
+                    Compiled SQL (SELECT ...)
+                         |
+                    Database Result</div>
+    </section>
+
+    <!-- Section 3: Design rules -->
+    <section id="rules" class="section-divider">
+      <h2>3. Design rules</h2>
+      <ol>
+        <li>JWT lives in middleware only.</li>
+        <li>JWT verification lives in middleware only.</li>
+        <li>JWT claim names live in middleware only.</li>
+        <li>Axis only sees generic <code>AxisContext</code>.</li>
+        <li>Axis never hard-codes tenant IDs, user IDs, or column names.</li>
+        <li>Security mappings are registered by the application.</li>
+        <li>PostgreSQL RLS enforces row security; Axis only sets session context.</li>
+        <li>Security context is transaction-scoped (<code>SET LOCAL</code> semantics via <code>set_config(..., true)</code>).</li>
+        <li>Missing required context fails closed — the query never executes.</li>
+        <li>Cache keys include the configured security subset.</li>
+        <li>Connection pooling never leaks context between requests.</li>
+        <li>Axis stays framework-independent (no Express import).</li>
+        <li>The existing <code>JSON → Validator → AST → Resolver → SQL</code> pipeline is unchanged.</li>
+        <li>Non-security queries keep working when no security config is registered.</li>
+      </ol>
+    </section>
+
+    <!-- Section 4: Implemented -->
+    <section id="implemented" class="section-divider">
+      <h2>4. What was implemented</h2>
+
+      <h3>4.1 Generic AxisContext</h3>
+      <p><code>axis/src/core/context/types.ts</code> — the only context type the library knows:</p>
+      <pre><code class="typescript">export type AxisContext = Record&lt;string, unknown&gt;;
+
+// Example application context:
+const context: AxisContext = {
+  tenant: "tenant-001",
+  user: "hariharpradeep@gmail.com",
+  roles: ["MANAGER"],
+};</code></pre>
+
+      <h3>4.2 Security configuration types</h3>
+      <p><code>axis/src/core/security/types.ts</code> — registered once by the application, never hard-coded:</p>
+      <pre><code class="typescript">export interface SecurityMapping {
+  contextKey: string;  // key in AxisContext, e.g. "tenant"
+  column: string;      // app DB column, e.g. "tenant_id" (docs/RLS reference)
+  sessionKey: string;  // PG session key, e.g. "app.tenant_id"
+  required?: boolean;
+}
+
+export interface AxisSecurityConfig {
+  mappings: Record&lt;string, SecurityMapping&gt;;
+}</code></pre>
+      <pre><code class="typescript">const axis = new AxisQueryEngine(database, {
+  security: {
+    mappings: {
+      tenant: { contextKey: "tenant", column: "tenant_id", sessionKey: "app.tenant_id", required: true },
+      user:   { contextKey: "user",   column: "created_by", sessionKey: "app.user_id",   required: true },
+    },
+  },
+});</code></pre>
+
+      <h3>4.3 Security resolver (fail-closed)</h3>
+      <p><code>resolveSecurityContext(context, config)</code> reads each mapping, looks up <code>context[mapping.contextKey]</code>, and throws <code>SecurityContextError</code> when a <code>required: true</code> value is missing — before cache or database are touched. Unknown context keys (e.g. <code>roles</code>) are ignored; optional mappings are skipped when absent; session keys are allow-list validated.</p>
+      <pre><code class="typescript">// Example failure — the query must NOT execute:
+SecurityContextError: Required security context value "tenant" is missing.</code></pre>
+
+      <h3>4.4 Database transaction helper</h3>
+      <p><code>Database.transaction(callback)</code>: acquire one pooled client → <code>BEGIN</code> → callback → <code>COMMIT</code> (or <code>ROLLBACK</code>, rethrowing the original error) → always <code>release()</code>. <code>SET LOCAL</code> state dies with the transaction, so pooled connections never leak tenant context.</p>
+
+      <h3>4.5 PostgreSQL SET LOCAL (safe)</h3>
+      <p>The executor runs inside the transaction, once per mapping:</p>
+      <pre><code class="typescript">SELECT set_config($1, $2, true);
+// params: [sessionKey, sessionValue]</code></pre>
+      <p><code>set_config(key, value, true)</code> with <code>is_local=true</code> equals <code>SET LOCAL</code>. Keys are allow-list validated; values are bound parameters, so quote-containing input cannot inject.</p>
+
+      <h3>4.6 Query engine integration</h3>
+      <pre><code class="typescript">new AxisQueryEngine(db, { registry, cache, security })  // options shape
+new AxisQueryEngine(db, registry, cache)               // legacy shape, still works
+
+await axis.query(input, { context });  // QueryOptions { context?: AxisContext }</code></pre>
+      <p>Pipeline per request: <code>parse → AST → resolve → resolveSecurityContext → cache.get → compile → execute → cache.set</code>. Security context is execution metadata; it never enters the AST.</p>
+
+      <h3>4.7 Security-aware cache keys</h3>
+      <p><code>buildCacheKey(query, { security })</code> mixes the canonical security subset into the digest. Empty/absent security preserves the legacy key, so non-security queries are unaffected:</p>
+      <div class="flow">Query A + tenant-001 → <span class="miss">miss → DB</span>
+Query A + tenant-001 → <span class="hit">HIT</span>
+Query A + tenant-002 → <span class="miss">miss → DB (different key, no leak)</span></div>
+
+      <h3>4.8 Middleware: JWT verification + AxisContext</h3>
+      <p>All of this lives in the <code>axis-middleware</code> package (<code>src/auth/</code>) — never in the <code>axis</code> library:</p>
+      <pre><code class="typescript">// src/auth/auth.ts
+verifyJwt(token, secret): DecodedJwt
+createAxisContext(decoded): AxisContext
+extractBearerToken(header): string
+createAuthMiddleware(secret): Express middleware (sets req.axisContext)
+requireAxisContext(req): AxisContext
+class AuthError extends Error { statusCode }</code></pre>
+      <p>Both claim shapes map to the same context: spec <code>{ sub, tenantId, roles? }</code> and legacy <code>{ userId, tenantId, role? }</code>.</p>
+      <pre><code class="typescript">// src/config.ts: jwtSecret: process.env.AXIS_JWT_SECRET ?? ""
+// src/app.ts (inside createApp, only when jwtSecret is set):
+axis = new Axis({ database, registry, cache, security: DEFAULT_SECURITY });
+app.use("/query", createAuthMiddleware(jwtSecret));
+// POST /query handler:
+const result = await axis.query(input, { context: req.axisContext });
+// errors: AuthError -&gt; 401, SecurityContextError -&gt; 403</code></pre>
+    </section>
+
+    <!-- Section 5: Workflow -->
+    <section id="workflow" class="section-divider">
+      <h2>5. Request-level workflow</h2>
+      <p>JWT payload <code>{ "sub": "hariharpradeep@gmail.com", "tenantId": "tenant-001", "roles": ["MANAGER"] }</code>, query <code>{ model: "PurchaseRequisitions", metrics: ["newCount"] }</code>.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Layer</th>
+            <th>Action</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Client</td><td>Sends request</td><td><code>POST /query</code>, <code>Authorization: Bearer &lt;JWT&gt;</code>, JSON body</td></tr>
+          <tr><td>2</td><td>Middleware</td><td>Extract token</td><td><code>extractBearerToken</code>; 401 if missing/malformed</td></tr>
+          <tr><td>3</td><td>Middleware</td><td>Verify</td><td>Signature + <code>exp</code>; 401 on invalid/expired/wrong-secret</td></tr>
+          <tr><td>4</td><td>Middleware</td><td>Decode + map</td><td><code>createAxisContext</code> → <code>{ user, tenant, roles }</code></td></tr>
+          <tr><td>5</td><td>Middleware</td><td>Attach</td><td><code>req.axisContext</code>; <code>next()</code></td></tr>
+          <tr><td>6</td><td>Route</td><td>Call Axis</td><td><code>axis.query(body, { context })</code></td></tr>
+          <tr><td>7</td><td>Engine</td><td>Validate/AST/resolve</td><td>Errors surface exactly as the uncached path</td></tr>
+          <tr><td>8</td><td>Engine</td><td>Resolve security</td><td><code>app.tenant_id/app.user_id</code>; throws before cache/DB if required value missing</td></tr>
+          <tr><td>9</td><td>Cache</td><td>Lookup</td><td>Tenant-bound key; HIT returns immediately</td></tr>
+          <tr><td>10</td><td>Compiler</td><td>SQL</td><td><code>SELECT ...</code> with <code>?</code> placeholders</td></tr>
+          <tr><td>11</td><td>Executor</td><td>Transaction</td><td><code>BEGIN</code> on one pooled client</td></tr>
+          <tr><td>12</td><td>Executor</td><td>SET LOCAL</td><td><code>set_config($1,$2,true)</code> per mapping</td></tr>
+          <tr><td>13</td><td>PostgreSQL</td><td>RLS</td><td><code>tenant_id = current_setting('app.tenant_id', true)</code> per row</td></tr>
+          <tr><td>14</td><td>Executor</td><td>Main query</td><td>Same client; <code>COMMIT</code>; client released</td></tr>
+          <tr><td>15</td><td>Cache</td><td>Store</td><td>Under tenant-bound key</td></tr>
+          <tr><td>16</td><td>Route</td><td>Respond</td><td><code>{ rows, rowCount }</code>; other tenants get their own rows</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Section 6: RLS -->
+    <section id="rls" class="section-divider">
+      <h2>6. PostgreSQL RLS setup</h2>
+      <p>Application-owned — Axis never creates policies, it only sets the session context:</p>
+      <pre><code class="typescript">ALTER TABLE upeg.requisition_deails ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY requisition_tenant_isolation
+ON upeg.requisition_deails
+USING (
+  tenant_id = current_setting('app.tenant_id', true)
+);
+
+-- With user-level isolation:
+-- CREATE POLICY requisition_user_isolation
+-- ON upeg.requisition_deails
+-- USING (
+--   tenant_id = current_setting('app.tenant_id', true)
+--   AND created_by = current_setting('app.user_id', true)
+-- );</code></pre>
+    </section>
+
+    <!-- Section 7: Tests -->
+    <section id="tests" class="section-divider">
+      <h2>7. Tests</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Covers</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>axis/tests/security/*</code></td><td>Library-side: mappings, fail-closed, tenant-bound cache keys, transactional <code>set_config</code>, pool isolation</td></tr>
+          <tr><td><code>axis-middleware/tests/auth.test.ts</code></td><td>Middleware-side: valid/spec + legacy JWT shapes, invalid signature, expired JWT, missing header, bad Bearer, AxisContext mapping, middleware attach</td></tr>
+          <tr><td><code>axis-middleware/tests/legacy-context.test.ts</code></td><td>Legacy global JWT context helpers (moved out of the library, kept for compatibility)</td></tr>
+        </tbody>
+      </table>
+      <blockquote>
+        <strong>Verification:</strong> axis — tsc clean, 28 files / 272 tests passing; axis-middleware — tsc clean, 6 files / 258 tests passing. Live check: no token → 401 AuthError; valid JWT (both claim shapes) → 200 with RLS-scoped rows.
+      </blockquote>
+    </section>
+
+    <!-- Section 8: Ownership -->
+    <section id="ownership" class="section-divider">
+      <h2>8. Ownership split</h2>
+      <p><strong>Library (<code>axis</code>) — generic, no middleware:</strong> <code>core/context/types.ts</code> (generic <code>AxisContext</code>), <code>core/security/*</code>, transaction helper, security-aware executor/engine/cache, <code>tests/security/*</code>. Removed: <code>src/middleware/*</code>, legacy JWT context files, the <code>jsonwebtoken</code> dependency, stale <code>dist/middleware/*</code>.</p>
+      <p><strong>Middleware (<code>axis-middleware</code>) — owns auth, env, HTTP:</strong> <code>src/auth/*</code>, <code>src/app.ts</code> (DEFAULT_SECURITY + auth on <code>/query</code> + 401/403), <code>src/config.ts</code> (<code>AXIS_JWT_SECRET</code>), <code>tests/auth.test.ts</code>, <code>tests/legacy-context.test.ts</code>, the <code>jsonwebtoken</code> dependency.</p>
+    </section>
+
+    <!-- Section 9: API -->
+    <section id="api" class="section-divider">
+      <h2>9. Final API</h2>
+      <pre><code class="typescript">// axis-middleware (owns auth): src/auth/auth.ts + src/app.ts
+const decoded = verifyJwt(token, process.env.AXIS_JWT_SECRET!);
+const context = createAxisContext(decoded);
+
+const result = await axis.query(
+  {
+    model: "PurchaseRequisitions",
+    metrics: ["newCount"],
+    axes: ["department_name"],
+    filters: [{ field: "status", operator: "equals", value: 1 }],
+  },
+  { context },
+);</code></pre>
+      <div class="flow">AUTHENTICATION → Middleware → AxisContext → Axis
+  → Security mappings → PostgreSQL session context → PostgreSQL RLS → Database</div>
+    </section>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding-top: 40px; border-top: 1px solid var(--border-color); margin-top: 60px; color: var(--text-secondary);">
+      <p><small>Companion to <a href="./htmls/documentation.html">Axis Documentation</a> and <a href="./htmls/cache.html">Axis Caching</a> — same theme, same structure. Covers Phase 8 authentication, security context, and PostgreSQL RLS.</small></p>
+    </footer>
+  </div>
+
+  <script>
+    // Lightweight editor-style syntax highlighting (no dependencies).
+    // Colors mimic VS Code Dark+: keywords purple, strings orange,
+    // numbers green, comments grey-green, functions yellow, vars blue.
+    (function () {
+      function esc(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+      function span(cls, s) {
+        return '<span class="' + cls + '">' + esc(s) + "</span>";
+      }
+
+      var JS_KEYWORDS = /^(const|let|var|import|from|export|return|await|async|function|new|if|throw|typeof|in|of)$/;
+      var JS_TYPES = /^(string|number|boolean|null|true|false)$/;
+
+      function highlightJS(src) {
+        var re = /(\/\/[^\n]*|#[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(\d+(?:\.\d+)?)\b|\b([A-Za-z_$][\w$]*)\b|(\s+|.)/g;
+        var out = "", m;
+        while ((m = re.exec(src))) {
+          var comment = m[1], str = m[2], num = m[3], word = m[4], other = m[5];
+          if (comment !== undefined) out += span("tok-c", comment);
+          else if (str !== undefined) out += span("tok-s", str);
+          else if (num !== undefined) out += span("tok-n", num);
+          else if (word !== undefined) {
+            if (JS_KEYWORDS.test(word)) out += span("tok-k", word);
+            else if (/^(true|false|null|undefined)$/.test(word)) out += span("tok-b", word);
+            else {
+              var rest = src.slice(re.lastIndex);
+              if (/^\s*\(/.test(rest)) out += span("tok-f", word);
+              else if (/^\s*:/.test(rest)) out += span("tok-p", word);
+              else out += span("tok-p", word);
+            }
+          }
+          else out += esc(other);
+        }
+        return out;
+      }
+
+      function highlightJSON(src) {
+        var re = /(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\b\d+(?:\.\d+)?\b)|(\s+|.)/g;
+        var out = "", m;
+        while ((m = re.exec(src))) {
+          var comment = m[1], str = m[2], colon = m[3], bool = m[4], num = m[5], other = m[6];
+          if (comment !== undefined) out += span("tok-c", comment);
+          else if (str !== undefined) {
+            out += colon !== undefined
+              ? span("tok-p", str) + esc(colon)
+              : span("tok-s", str);
+          }
+          else if (bool !== undefined) out += span("tok-b", bool);
+          else if (num !== undefined) out += span("tok-n", num);
+          else out += esc(other);
+        }
+        return out;
+      }
+
+      function highlightBash(src) {
+        var lines = src.split("\n"), html = [];
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (/^\s*(#.*)?$/.test(line)) {
+            html.push(line.trim().startsWith("#") ? span("tok-c", line) : esc(line));
+            continue;
+          }
+          var re = /(#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(--[A-Za-z][\w-]*|-[A-Za-z]+)|\b(\d+)\b|\b(curl|npm|node|npx|fetch)\b|(\s+|\S+)/g;
+          var out = "", m;
+          while ((m = re.exec(line))) {
+            if (m[1] !== undefined) out += span("tok-c", m[1]);
+            else if (m[2] !== undefined) out += span("tok-s", m[2]);
+            else if (m[3] !== undefined) out += span("tok-flag", m[3]);
+            else if (m[4] !== undefined) out += span("tok-n", m[4]);
+            else if (m[5] !== undefined) out += span("tok-cmd", m[5]);
+            else out += esc(m[6]);
+          }
+          html.push(out);
+        }
+        return html.join("\n");
+      }
+
+      function highlightTS(src) {
+        // TypeScript = JS highlighting + type names in teal.
+        var html = highlightJS(src);
+        return html.replace(
+          /<span class="tok-p">([A-Z][A-Za-z0-9_]*)<\/span>/g,
+          '<span class="tok-t">$1</span>'
+        );
+      }
+
+      document.querySelectorAll("pre code").forEach(function (el) {
+        var lang = (el.className || "").toLowerCase();
+        var src = el.textContent;
+        if (lang.indexOf("typescript") >= 0 || lang.indexOf(" ts") >= 0) el.innerHTML = highlightTS(src);
+        else if (lang.indexOf("javascript") >= 0 || lang.indexOf(" js") >= 0) el.innerHTML = highlightJS(src);
+        else if (lang.indexOf("json") >= 0) el.innerHTML = highlightJSON(src);
+        else el.innerHTML = highlightBash(src); // bash / curl blocks
+      });
+    })();
+  </script>
+</body>
+</html>

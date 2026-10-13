@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AXIS — Data & Query Workflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad:true,
+  theme:"dark",
+  flowchart:{curve:"basis",nodeSpacing:45,rankSpacing:65,padding:18,useMaxWidth:true},
+  themeVariables:{
+    background:"#050505",primaryColor:"#111111",primaryTextColor:"#f5f7fa",
+    primaryBorderColor:"#ec4899",lineColor:"#94a3b8",
+    secondaryColor:"#0f0f0f",tertiaryColor:"#151515",
+    clusterBkg:"#090909",clusterBorder:"#333333"
+  }
+});
+</script>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#050505;--panel:#0b0b0b;--panel2:#101010;--text:#f5f7fa;--muted:#a7b0bd;--accent:#ec4899;--soft:#f472b6;--border:#252525}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Poppins,sans-serif;line-height:1.7}
+.container{max-width:1180px;margin:auto;padding:48px 28px 80px}
+header{border-bottom:1px solid var(--border);padding:10px 0 42px;margin-bottom:42px}
+h1{font-size:46px;line-height:1.15;margin:0 0 12px;background:linear-gradient(135deg,var(--accent),var(--soft));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header p,p,li,td{color:var(--muted)}
+header p{font-size:18px;max-width:820px}
+section{margin-bottom:58px}
+h2{font-size:29px;color:var(--soft);margin:0 0 18px}
+h3{font-size:20px;margin:30px 0 10px}
+.diagram{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:28px 18px;margin:24px 0 30px;overflow-x:auto}
+pre.mermaid{background:transparent;border:0;margin:0;min-width:760px}
+.callout{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:20px 22px;margin:22px 0}
+.callout strong{color:var(--text)}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);margin-top:22px}
+th,td{text-align:left;padding:14px 16px;border-bottom:1px solid var(--border);vertical-align:top}
+th{background:var(--panel2);color:var(--text)}
+tr:last-child td{border-bottom:0}
+ol,ul{margin:12px 0 18px 24px}
+li{margin-bottom:8px}
+code{font-family:"JetBrains Mono",monospace;background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:2px 6px}
+@media(max-width:768px){.container{padding:30px 16px 60px}h1{font-size:34px}.diagram{padding:18px 8px}pre.mermaid{min-width:680px}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+<h1>AXIS — DATA &amp; QUERY WORKFLOW</h1>
+<p>How source data becomes searchable, how scheduled synchronization keeps OpenSearch current, and how frontend requests travel through Axis to the correct data source.</p>
+</header>
+
+<section>
+<h2>1. End-to-End Workflow</h2>
+<p>The background flow prepares searchable data while the application flow serves user requests. Keeping these flows separate prevents indexing and embedding work from becoming part of the normal request path.</p>
+<div class="diagram"><pre class="mermaid">
+flowchart TB
+    subgraph BACKGROUND["BACKGROUND DATA FLOW"]
+        DB[(PostgreSQL<br/>Source of Truth)]
+        JOB[Scheduled Sync]
+        SQL[Axis SQL Compiler]
+        DOC[Prepare Search Document]
+        EMB[Embedding Service]
+        OS[(OpenSearch)]
+        DB --> JOB
+        JOB --> SQL
+        SQL --> DOC
+        DOC --> EMB
+        EMB --> DOC
+        DOC --> OS
+    end
+    subgraph APPLICATION["APPLICATION READ FLOW"]
+        FE[Frontend]
+        MID[Middleware]
+        AXIS[Axis Library]
+        PLAN[Query Planner]
+        SEARCH[OpenSearch]
+        S3[(S3<br/>Static Aggregates)]
+        OUT[Normalized Response]
+        FE --> MID
+        MID --> AXIS
+        AXIS --> PLAN
+        PLAN --> SEARCH
+        PLAN --> S3
+        SEARCH --> OUT
+        S3 --> OUT
+        OUT --> MID
+        MID --> FE
+    end
+    DOC -->|"documents + vectors"| OS
+    SEARCH --> OS
+    PLAN -->|"semantic request"| EMB
+    EMB -->|"query vector"| OS
+</pre></div>
+<div class="callout"><strong>Core boundary:</strong> PostgreSQL is the source of truth. OpenSearch is the optimized search/read store. S3 contains prepared static aggregate data. Axis hides these storage details from middleware.</div>
+</section>
+
+<section>
+<h2>2. Background Synchronization</h2>
+<p>The scheduled job keeps OpenSearch synchronized with PostgreSQL. It should process changes incrementally rather than rebuilding the entire index on every run.</p>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    START[Scheduled Job] --> CHECK[Find Added / Updated / Deleted Records]
+    CHECK --> READ[Read Required Source Data]
+    READ --> PREP[Prepare Search Document]
+    PREP --> EMB[Generate Embedding]
+    EMB --> WRITE[Upsert / Delete in OpenSearch]
+    WRITE --> STATE[Save Sync Checkpoint]
+</pre></div>
+<ol>
+<li>Detect changes in the source database.</li>
+<li>Read only the required source data.</li>
+<li>Prepare the searchable document.</li>
+<li>Generate vectors for fields that support semantic search.</li>
+<li>Update OpenSearch.</li>
+<li>Save a checkpoint for the next run.</li>
+</ol>
+<p>If searchable text changes, the affected document can be embedded again. If a source record is deleted, that deletion must also reach OpenSearch.</p>
+</section>
+
+<section>
+<h2>3. Embedding Flow</h2>
+<p>The embedding service is used during indexing and during semantic search. No LLM is required. The same embedding model should be used for documents and queries.</p>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    TEXT1[Document Text] --> EMB1[Embedding Service] --> VECTOR1[Document Vector] --> OS1[(OpenSearch)]
+    TEXT2[User Search Text] --> EMB2[Embedding Service] --> VECTOR2[Query Vector] --> OS2[(OpenSearch Vector Search)]
+</pre></div>
+</section>
+
+<section>
+<h2>4. Frontend Request Flow</h2>
+<p>The frontend communicates only with middleware. It does not need to know whether the result came from OpenSearch or S3.</p>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    FE[Frontend] --> MID[Middleware] --> AX[Axis] --> PLAN[Query Planner]
+    PLAN --> OS[(OpenSearch)]
+    PLAN --> S3[(S3)]
+    PLAN --> EMB[Embedding Service]
+    EMB --> OS
+    OS --> OUT[Normalized Response]
+    S3 --> OUT
+    OUT --> MID
+    MID --> FE
+</pre></div>
+<h3>Structured search and filtering</h3>
+<p>Filters, sorting, pagination, ordinary text search and supported aggregations can be handled directly by OpenSearch. No embedding request is needed.</p>
+<h3>Semantic search</h3>
+<p>Axis sends the user's search text to the embedding service, receives a vector, and uses that vector for similarity search in OpenSearch.</p>
+<h3>Static aggregate data</h3>
+<p>Prepared dashboard aggregates can be generated by a background job and stored in S3. Axis can retrieve them instead of recalculating them during every request.</p>
+</section>
+
+<section>
+<h2>5. Query Planning</h2>
+<p>The query planner is the decision point inside Axis. It determines what type of backend operation the request requires.</p>
+<div class="diagram"><pre class="mermaid">
+flowchart TB
+    REQUEST[Incoming Query] --> PLAN[Query Planner]
+    PLAN --> STRUCT[Structured Search / Filter] --> OS1[OpenSearch]
+    PLAN --> SEM[Semantic Search] --> EMB[Embedding Service] --> OS2[OpenSearch Vector Search]
+    PLAN --> STATIC[Static Aggregate] --> S3[S3]
+</pre></div>
+<p>The planner selects the appropriate path; it does not replace the compilers or adapters.</p>
+</section>
+
+<section>
+<h2>6. Transformation Inside Axis</h2>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    REQ[Request] --> VALID[Validation] --> MODEL[Internal Query] --> PLAN[Planning] --> COMPILE[Backend Query] --> EXEC[Adapter / Execution] --> NORMAL[Response Normalization]
+</pre></div>
+<p>Axis validates the request, converts it into its internal representation, plans the operation, builds the backend query, executes it and normalizes the result before returning it to middleware.</p>
+<div class="callout"><strong>SQL compiler boundary:</strong> the SQL compiler remains in Axis because scheduled synchronization needs SQL access to PostgreSQL. It does not need to run for normal frontend reads when OpenSearch is the read store.</div>
+</section>
+
+<section>
+<h2>7. Static Aggregate Flow</h2>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    SOURCE[Source Data] --> JOB[Aggregation Job] --> AGG[Precomputed Aggregate] --> S3[(S3)] --> AXIS[Axis] --> RESPONSE[Dashboard Response]
+</pre></div>
+<p>Static or infrequently changing aggregates can be prepared ahead of time and stored in S3.</p>
+</section>
+
+<section>
+<h2>8. Component Responsibilities</h2>
+<table>
+<tr><th>Component</th><th>Responsibility</th></tr>
+<tr><td>Frontend</td><td>Creates requests and displays responses.</td></tr>
+<tr><td>Middleware</td><td>HTTP, authentication, request context, model registration and response delivery.</td></tr>
+<tr><td>Axis</td><td>Query planning, compilation, indexing, OpenSearch access, embedding orchestration and normalization.</td></tr>
+<tr><td>Query Planner</td><td>Selects the appropriate data path.</td></tr>
+<tr><td>SQL Compiler</td><td>Reads source data for scheduled/background work.</td></tr>
+<tr><td>Embedding Service</td><td>Converts text into vectors.</td></tr>
+<tr><td>OpenSearch</td><td>Search, filters, aggregations and vector similarity.</td></tr>
+<tr><td>S3</td><td>Prepared/static aggregate data.</td></tr>
+<tr><td>Scheduler</td><td>Runs background synchronization and aggregation jobs.</td></tr>
+<tr><td>PostgreSQL</td><td>System of record.</td></tr>
+</table>
+</section>
+
+<section>
+<h2>9. Architectural Boundary</h2>
+<p style="font-size:18px;color:#f5f7fa">PostgreSQL is the source of truth. OpenSearch is the optimized read/search store. S3 is the prepared aggregate store. Axis is the abstraction layer between application requests and these storage systems.</p>
+<p>The expensive work—indexing, embedding and aggregate preparation—happens in controlled background processes wherever possible. The normal user read path stays focused on fast retrieval.</p>
+</section>
+
+</div>
+</body>
+</html>

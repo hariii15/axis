@@ -1,0 +1,17 @@
+{
+  "comment": "Canonical OpenSearch mapping for the contactinfo index (Architecture A2). companyId is the FK to CompanyInfo.id (keyword, exact). Recreate with: DELETE the index, then PUT this body.",
+  "settings": {
+    "index.knn": true
+  },
+  "mappings": {
+    "properties": {
+      "companyId": { "type": "keyword" },
+      "contactName": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "contactNumber": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "email": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "tenant_id": { "type": "keyword" },
+      "searchable_text": { "type": "text" },
+      "embedding": { "type": "knn_vector", "dimension": 384 }
+    }
+  }
+}

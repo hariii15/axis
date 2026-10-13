@@ -1,0 +1,1 @@
+{"version":3,"file":"opensearch.d.ts","sourceRoot":"","sources":["../../../src/core/security/opensearch.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,WAAW,EAAE,MAAM,qBAAqB,CAAC;AAEvD,OAAO,KAAK,EAAE,kBAAkB,EAAE,MAAM,YAAY,CAAC;AAErD;;;;;;;;;;;;;;;;;;GAkBG;AACH,wBAAgB,8BAA8B,CAC5C,OAAO,EAAE,WAAW,EACpB,MAAM,EAAE,kBAAkB,GACzB,MAAM,CAAC,MAAM,EAAE,OAAO,CAAC,EAAE,CA0B3B"}
